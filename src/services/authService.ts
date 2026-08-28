@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { AuthSession, UserRole } from '../types';
 
@@ -154,37 +155,122 @@ export const authService = {
     return session;
   },
 
-  // Change Admin PIN via online Supabase RPC
-  async changeAdminPin(oldPin: string, newPin: string, confirmPin: string): Promise<boolean> {
+  // Change Admin PIN (Directly sets new PIN, no previous PIN required)
+  async updateAdminPinDirect(newPin: string, confirmPin: string): Promise<boolean> {
     if (!isSupabaseConfigured()) {
       throw new Error('Supabase is not configured.');
     }
 
-    if (!oldPin || oldPin.length !== 6 || !/^\d{6}$/.test(oldPin)) {
-      throw new Error('Previous PIN must be exactly 6 digits.');
-    }
     if (!newPin || newPin.length !== 6 || !/^\d{6}$/.test(newPin)) {
       throw new Error('New PIN must be exactly 6 digits.');
     }
     if (newPin !== confirmPin) {
       throw new Error('New PIN and Confirm PIN do not match.');
     }
-    if (oldPin === newPin) {
-      throw new Error('New PIN must be different from previous PIN.');
+
+    const session = this.getCurrentSession();
+
+    // Hash with bcrypt (PostgreSQL pgcrypto crypt compatible)
+    const salt = bcrypt.genSaltSync(10);
+    const newHash = bcrypt.hashSync(newPin, salt);
+
+    const { data: rows, error: selectErr } = await supabase
+      .from('admin_settings')
+      .select('id')
+      .limit(1);
+
+    if (selectErr) {
+      throw new Error(selectErr.message || 'Failed to access admin settings.');
+    }
+
+    if (rows && rows.length > 0) {
+      const targetId = rows[0].id;
+      const { error: updateErr } = await supabase
+        .from('admin_settings')
+        .update({
+          pin_hash: newHash,
+          updated_at: new Date().toISOString(),
+          updated_by: session?.user?.id || null
+        })
+        .eq('id', targetId);
+
+      if (updateErr) {
+        throw new Error(updateErr.message || 'Failed to update Admin PIN.');
+      }
+    } else {
+      const { error: insertErr } = await supabase
+        .from('admin_settings')
+        .insert({
+          pin_hash: newHash,
+          updated_by: session?.user?.id || null
+        });
+
+      if (insertErr) {
+        throw new Error(insertErr.message || 'Failed to initialize Admin PIN.');
+      }
+    }
+
+    // Write to audit_logs
+    await supabase.from('audit_logs').insert({
+      user_id: session?.user?.id || null,
+      user_email: session?.user?.email || 'admin@school.edu',
+      user_role: 'admin',
+      action: 'UPDATE_ADMIN_PIN',
+      table_name: 'admin_settings',
+      description: 'Admin set a new 6-digit Master PIN'
+    });
+
+    return true;
+  },
+
+  // Change Admin PIN with optional previous PIN verification
+  async changeAdminPin(oldPin: string, newPin: string, confirmPin: string): Promise<boolean> {
+    if (oldPin && oldPin.trim()) {
+      const { data: isOldPinValid } = await supabase.rpc('verify_admin_pin', { input_pin: oldPin });
+      if (!isOldPinValid) {
+        throw new Error('Previous Admin PIN is incorrect.');
+      }
+    }
+    return this.updateAdminPinDirect(newPin, confirmPin);
+  },
+
+  // Send PIN reset link / notification to Admin email
+  async sendAdminPinResetEmail(): Promise<{ email: string; message: string }> {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase is not configured.');
+    }
+
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('role', 'admin')
+      .limit(1)
+      .single();
+
+    const targetEmail = adminProfile?.email || 'admin@school.edu';
+
+    try {
+      await supabase.auth.resetPasswordForEmail(targetEmail, {
+        redirectTo: window.location.origin + '/admin/login'
+      });
+    } catch (e) {
+      console.warn('Supabase email dispatch notice:', e);
     }
 
     const session = this.getCurrentSession();
-    const { data: success, error } = await supabase.rpc('change_admin_pin', {
-      old_pin: oldPin,
-      new_pin: newPin,
-      admin_id: session?.user.id || null
+    await supabase.from('audit_logs').insert({
+      user_id: session?.user?.id || null,
+      user_email: targetEmail,
+      user_role: 'admin',
+      action: 'ADMIN_PIN_RESET_REQUESTED',
+      table_name: 'admin_settings',
+      description: `Admin PIN reset instructions and recovery link sent to ${targetEmail}`
     });
 
-    if (error) {
-      throw new Error(error.message || 'Failed to change Admin PIN. Check previous PIN.');
-    }
-
-    return Boolean(success);
+    return {
+      email: targetEmail,
+      message: `A security PIN reset link and instructions have been dispatched to ${targetEmail}.`
+    };
   },
 
   // Reset user password (Admin-only action)

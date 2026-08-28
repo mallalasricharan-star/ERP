@@ -156,7 +156,7 @@ BEGIN
 END;
 $$;
 
--- 2. Change Admin PIN (Verifies previous PIN first)
+-- 2. Change Admin PIN Function
 CREATE OR REPLACE FUNCTION public.change_admin_pin(old_pin TEXT, new_pin TEXT, admin_id UUID DEFAULT NULL)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -165,6 +165,7 @@ AS $$
 DECLARE
     is_valid_old BOOLEAN;
     new_hash TEXT;
+    target_id UUID;
 BEGIN
     -- Verify input constraints
     IF length(new_pin) != 6 OR new_pin !~ '^\d{6}$' THEN
@@ -180,11 +181,19 @@ BEGIN
     -- Generate secure hash for new PIN
     new_hash := crypt(new_pin, gen_salt('bf', 10));
 
-    -- Update admin_settings
-    UPDATE public.admin_settings
-    SET pin_hash = new_hash,
-        updated_at = NOW(),
-        updated_by = admin_id;
+    -- Update admin_settings with explicit WHERE clause
+    SELECT id INTO target_id FROM public.admin_settings LIMIT 1;
+
+    IF target_id IS NOT NULL THEN
+        UPDATE public.admin_settings
+        SET pin_hash = new_hash,
+            updated_at = NOW(),
+            updated_by = admin_id
+        WHERE id = target_id;
+    ELSE
+        INSERT INTO public.admin_settings (pin_hash, updated_by)
+        VALUES (new_hash, admin_id);
+    END IF;
 
     -- Log to audit_logs
     INSERT INTO public.audit_logs (user_id, user_role, action, table_name, description)

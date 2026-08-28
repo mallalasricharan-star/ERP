@@ -173,6 +173,7 @@ AS $$
 DECLARE
     is_valid_old BOOLEAN;
     new_hash TEXT;
+    target_id UUID;
 BEGIN
     IF length(new_pin) != 6 OR new_pin !~ '^\d{6}$' THEN
         RAISE EXCEPTION 'New PIN must be exactly 6 digits';
@@ -185,10 +186,18 @@ BEGIN
 
     new_hash := crypt(new_pin, gen_salt('bf', 10));
 
-    UPDATE public.admin_settings
-    SET pin_hash = new_hash,
-        updated_at = NOW(),
-        updated_by = admin_id;
+    SELECT id INTO target_id FROM public.admin_settings LIMIT 1;
+
+    IF target_id IS NOT NULL THEN
+        UPDATE public.admin_settings
+        SET pin_hash = new_hash,
+            updated_at = NOW(),
+            updated_by = admin_id
+        WHERE id = target_id;
+    ELSE
+        INSERT INTO public.admin_settings (pin_hash, updated_by)
+        VALUES (new_hash, admin_id);
+    END IF;
 
     INSERT INTO public.audit_logs (user_id, user_role, action, table_name, description)
     VALUES (admin_id, 'admin', 'UPDATE_ADMIN_PIN', 'admin_settings', 'Admin changed the 6-digit Master PIN');

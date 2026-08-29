@@ -9,7 +9,6 @@ import {
   Sparkles
 } from 'lucide-react';
 import { FuturisticVisualizer } from '../../components/common/FuturisticVisualizer';
-import { CinematicWordReveal } from '../../components/letters';
 import { themeService, AnimationThemeConfig } from '../../services/themeService';
 
 export const LandingPage: React.FC = () => {
@@ -60,19 +59,32 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Cinematic Word Reveal Hero + 3 Dedicated Path Cards */}
+          {/* Right Column: Clean EDUPRIME ERP Title + 3 Dedicated Path Cards */}
           <div className="lg:col-span-7 flex flex-col justify-center space-y-6">
             
-            {/* 🎬 Cinematic Word-to-Full-Name Reveal Animation */}
-            <div className="space-y-1.5">
+            {/* Title Header */}
+            <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Next-Gen Enterprise Platform</span>
+                <span>Enterprise School Platform</span>
               </div>
 
-              {/* Dynamic Word-to-Full-Name Morph Sequence */}
-              <div className="pt-1">
-                <CinematicWordReveal />
+              {/* High-Impact Typography */}
+              <div>
+                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-none">
+                  EDUPRIME{' '}
+                  <span className="bg-gradient-to-r from-lime-300 via-emerald-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(34,211,238,0.5)]">
+                    ERP
+                  </span>
+                </h1>
+                
+                {/* Glowing Laser Underline */}
+                <div
+                  className="h-1 rounded-full mt-3 w-48 shadow-lg transition-colors duration-1000"
+                  style={{
+                    background: `linear-gradient(90deg, ${activeTheme.primaryColor}, ${activeTheme.secondaryColor}, transparent)`
+                  }}
+                />
               </div>
 
               <p className="text-base sm:text-lg text-slate-300 font-medium leading-relaxed pt-1">

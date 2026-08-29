@@ -3,197 +3,259 @@ import {
   Sparkles,
   CheckCircle2,
   Eye,
-  Zap,
-  Atom,
-  Activity,
-  Globe,
-  Layers,
   Search,
   Check,
-  ShieldCheck,
-  RefreshCw,
-  Sliders
+  Zap,
+  Filter,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 import { FuturisticVisualizer } from '../../components/common/FuturisticVisualizer';
 import {
   themeService,
-  ANIMATION_THEMES,
-  AnimationThemeId,
   AnimationThemeConfig
 } from '../../services/themeService';
 import { useToast } from '../../context/ToastContext';
 
-// 150 Animation Concept Names Library Categorized
-const CONCEPT_LIBRARY = [
-  'Quantum Core', 'Nexus Flow', 'Neural Pulse', 'Quantum Grid', 'Core Fusion',
-  'Nexus Prime', 'Data Pulse', 'Quantum Flux', 'Nova Core', 'Neural Nexus',
-  'Infinity Core', 'Digital Orbit', 'Data Nexus', 'Cyber Flux', 'Quantum Sphere',
-  'Core Matrix', 'Nexus Wave', 'Neural Flow', 'Data Orbit', 'Quantum Wave',
-  'Nova Nexus', 'Digital Pulse', 'Core Orbit', 'Future Grid', 'Quantum Nexus',
-  'Neural Matrix', 'Infinity Grid', 'Data Fusion', 'Nova Pulse', 'Core Velocity',
-  'Quantum Horizon', 'Nexus Spectrum', 'Digital Fusion', 'Neural Orbit', 'Quantum Stream',
-  'Data Velocity', 'Nova Matrix', 'Core Spectrum', 'Cyber Nexus', 'Quantum Rise',
-  'Neural Spectrum', 'Infinity Nexus', 'Digital Horizon', 'Data Matrix', 'Quantum Vision',
-  'Nova Flux', 'Core Nexus', 'Neural Horizon', 'Quantum Infinity', 'Nexus Evolution',
-  'Quantum Axis', 'Quantum Vector', 'Quantum Engine', 'Quantum Link', 'Quantum Bridge',
-  'Quantum Network', 'Quantum Drive', 'Quantum Pulse', 'Quantum Vision', 'Quantum Matrix',
-  'Nexus Axis', 'Nexus Vector', 'Nexus Engine', 'Nexus Link', 'Nexus Bridge',
-  'Nexus Core', 'Nexus Network', 'Nexus Drive', 'Nexus Vision', 'Nexus Fusion',
-  'Neural Core', 'Neural Drive', 'Neural Link', 'Neural Bridge', 'Neural Engine',
-  'Neural Vector', 'Neural Grid', 'Neural Sphere', 'Neural Fusion', 'Neural Matrix',
-  'Data Core', 'Data Engine', 'Data Vector', 'Data Bridge', 'Data Network',
-  'Data Stream', 'Data Pulse', 'Data Horizon', 'Data Fusion', 'Data Spectrum',
-  'Digital Core', 'Digital Nexus', 'Digital Vector', 'Digital Engine', 'Digital Bridge',
-  'Digital Matrix', 'Digital Sphere', 'Digital Flow', 'Digital Pulse', 'Digital Horizon',
-  'Nova Vector', 'Nova Engine', 'Nova Grid', 'Nova Sphere', 'Nova Horizon',
-  'Nova Network', 'Nova Bridge', 'Nova Vision', 'Nova Drive', 'Nova Fusion',
-  'Core Engine', 'Core Vector', 'Core Network', 'Core Bridge', 'Core Vision',
-  'Core Pulse', 'Core Horizon', 'Core Fusion', 'Core Drive', 'Core Flow',
-  'Future Nexus', 'Future Core', 'Future Pulse', 'Future Matrix', 'Future Sphere',
-  'Future Vector', 'Future Flow', 'Future Fusion', 'Future Horizon', 'Future Network',
-  'Enterprise Nexus', 'Enterprise Core', 'Enterprise Flow', 'Enterprise Pulse', 'Enterprise Matrix',
-  'Enterprise Fusion', 'Enterprise Horizon', 'Enterprise Grid', 'Enterprise Sphere', 'Enterprise Vector',
-  'Smart Nexus', 'Smart Core', 'Smart Matrix', 'Smart Flow', 'Smart Pulse',
-  'Smart Fusion', 'Smart Grid', 'Smart Horizon', 'Smart Sphere', 'Smart Vector'
+const CATEGORIES = [
+  'All (150)',
+  'Quantum Dynamics',
+  'Nexus Architecture',
+  'Neural Intelligence',
+  'Data Stream',
+  'Digital Matrix',
+  'Core Reactor',
+  'High Velocity',
+  'Enterprise SaaS',
+  'Smart Ecosystem'
 ];
 
 export const AdminAnimationSettingsPage: React.FC = () => {
   const toast = useToast();
-  const [selectedThemeId, setSelectedThemeId] = useState<AnimationThemeId>(
-    themeService.getActiveTheme().id
-  );
-  const [searchConcept, setSearchConcept] = useState('');
+  const all150Themes = themeService.getAll150Themes();
+  const currentActiveTheme = themeService.getActiveTheme();
 
-  const themes = themeService.getAllThemes();
-  const currentPreviewTheme = ANIMATION_THEMES[selectedThemeId] || themes[0];
+  const [previewTheme, setPreviewTheme] = useState<AnimationThemeConfig>(currentActiveTheme);
+  const [activePublishedId, setActivePublishedId] = useState<string>(currentActiveTheme.id);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All (150)');
 
-  const handleApplyTheme = () => {
-    themeService.setActiveTheme(selectedThemeId);
-    toast.success(`Published "${currentPreviewTheme.name}" as the active Landing Page animation!`);
+  const handleSelectThemeForPreview = (theme: AnimationThemeConfig) => {
+    setPreviewTheme(theme);
   };
 
-  const filteredConcepts = CONCEPT_LIBRARY.filter(c =>
-    c.toLowerCase().includes(searchConcept.toLowerCase())
-  );
+  const handlePublishTheme = () => {
+    const published = themeService.setActiveTheme(previewTheme.id);
+    setActivePublishedId(published.id);
+    toast.success(`Published "${published.name}" (#${all150Themes.findIndex(t => t.id === published.id) + 1}) to the live Landing Page!`);
+  };
+
+  // Filter 150 items by Search and Category
+  const filteredThemes = all150Themes.filter(t => {
+    const matchesSearch =
+      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.badge.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === 'All (150)' || t.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
-    <div className="space-y-8">
-      {/* Page Header */}
+    <div className="space-y-8 pb-12">
+      
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-bold mb-2">
             <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
-            <span>Admin Visual Experience Manager</span>
+            <span>150-Theme Visual Engine Control</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Landing Page Futuristic Animation Engine
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Landing Page 150 Animation Engine
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Choose and customize the active 3D particle visualizer rendered on the public landing page
+            Click any of the 150 styles below to preview in real-time and deploy to the public landing page
           </p>
         </div>
 
         <button
           type="button"
-          onClick={handleApplyTheme}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-lg shadow-blue-600/25 transition-all cursor-pointer"
+          onClick={handlePublishTheme}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all cursor-pointer transform hover:-translate-y-0.5"
         >
-          <CheckCircle2 className="w-4 h-4" />
-          <span>Publish Active Animation</span>
+          <CheckCircle2 className="w-4 h-4 text-white" />
+          <span>Publish "{previewTheme.name}" Live</span>
         </button>
       </div>
 
-      {/* 2-Column: Live Preview (Left) + Theme Selection Engine (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* 2-Column: Fixed Live Preview Panel (Left) + Interactive 150 Library (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Left Column: Live Interactive Preview Card */}
-        <div className="lg:col-span-5 space-y-4">
+        {/* Left Column: Real-time Canvas Preview & Active Metadata */}
+        <div className="lg:col-span-5 sticky top-24 space-y-4">
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Eye className="w-4 h-4 text-blue-600" />
                 <h3 className="text-sm font-bold text-slate-900">Live Visualizer Preview</h3>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                Interactive Canvas
+              <span
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                  activePublishedId === previewTheme.id
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                    : 'bg-amber-50 text-amber-700 border-amber-300'
+                }`}
+              >
+                {activePublishedId === previewTheme.id ? '● Active on Landing Page' : '○ Previewing'}
               </span>
             </div>
 
-            {/* Dark Visualizer Frame */}
-            <div className="w-full aspect-square rounded-2xl bg-[#050811] border border-slate-800 p-3 relative overflow-hidden shadow-inner flex items-center justify-center">
-              <FuturisticVisualizer theme={currentPreviewTheme} className="w-full h-full" />
+            {/* Dark 3D Visualizer Canvas */}
+            <div className="w-full aspect-square rounded-2xl bg-[#050811] border border-slate-800 p-4 relative overflow-hidden shadow-inner flex items-center justify-center">
+              <FuturisticVisualizer theme={previewTheme} className="w-full h-full" />
             </div>
 
-            {/* Theme Details Metadata */}
-            <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Selected System:</span>
-                <span className="font-bold text-slate-900">{currentPreviewTheme.name}</span>
+            {/* Selected Theme Details */}
+            <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Selected Animation:</span>
+                <span className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: previewTheme.primaryColor }} />
+                  {previewTheme.name}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Category:</span>
-                <span className="font-semibold text-blue-600">{currentPreviewTheme.category}</span>
+                <span className="text-slate-500 font-medium">Architecture Category:</span>
+                <span className="font-semibold text-blue-600">{previewTheme.category}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Particle Hue:</span>
-                <span className="font-mono text-slate-700">{currentPreviewTheme.particleHue}°</span>
+                <span className="text-slate-500 font-medium">Color Spectrum Hue:</span>
+                <span className="font-mono text-slate-700">{previewTheme.particleHue}°</span>
               </div>
-              <p className="text-[11px] text-slate-500 pt-1.5 border-t border-slate-200">
-                {currentPreviewTheme.tagline}
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Library Index:</span>
+                <span className="font-mono text-slate-700">{previewTheme.badge}</span>
+              </div>
+              <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-200">
+                {previewTheme.tagline}
               </p>
             </div>
+
+            {/* 1-Click Publish Action */}
+            <button
+              type="button"
+              onClick={handlePublishTheme}
+              className="w-full mt-3 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
+            >
+              <Zap className="w-3.5 h-3.5 text-yellow-400" />
+              <span>Set as Active Landing Page Animation</span>
+            </button>
           </div>
         </div>
 
-        {/* Right Column: Theme Selector Cards */}
+        {/* Right Column: Full 150 Animation Library Grid with Filter & Search */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Select Animation Architecture</h3>
-                <p className="text-xs text-slate-500">Click to preview in the live canvas on the left</p>
+          <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-card space-y-5">
+            
+            {/* Search & Category Filter Header */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    150 Animation Style Library ({filteredThemes.length})
+                  </h3>
+                  <p className="text-xs text-slate-500">Click any card to load live in the preview visualizer</p>
+                </div>
+
+                {/* Search Box */}
+                <div className="relative w-full sm:w-60">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search 150 styles..."
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-blue-600 bg-slate-50 focus:bg-white"
+                  />
+                </div>
               </div>
-              <Sliders className="w-4 h-4 text-slate-400" />
+
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      selectedCategory === cat
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {themes.map(t => {
-                const isSelected = selectedThemeId === t.id;
+            {/* 150 Cards Interactive Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[650px] overflow-y-auto pr-1">
+              {filteredThemes.map((theme, index) => {
+                const isSelectedForPreview = previewTheme.id === theme.id;
+                const isCurrentlyActive = activePublishedId === theme.id;
+
                 return (
                   <div
-                    key={t.id}
-                    onClick={() => setSelectedThemeId(t.id)}
-                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? 'bg-blue-50/70 border-blue-600 shadow-md'
-                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
+                    key={theme.id + index}
+                    onClick={() => handleSelectThemeForPreview(theme)}
+                    className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                      isSelectedForPreview
+                        ? 'bg-blue-50/80 border-blue-600 shadow-md ring-2 ring-blue-500/20'
+                        : isCurrentlyActive
+                        ? 'bg-emerald-50/60 border-emerald-500 shadow-sm'
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <span
-                            className="w-3 h-3 rounded-full shadow-sm"
-                            style={{ backgroundColor: t.primaryColor }}
+                            className="w-3 h-3 rounded-full shadow-sm flex-shrink-0"
+                            style={{ backgroundColor: theme.primaryColor }}
                           />
-                          <h4 className="text-sm font-bold text-slate-900">{t.name}</h4>
+                          <h4 className="text-xs font-bold text-slate-900 truncate">
+                            {theme.name}
+                          </h4>
                         </div>
-                        {isSelected && (
-                          <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                            <Check className="w-3 h-3" />
-                          </div>
-                        )}
+                        <span className="text-[10px] font-mono font-bold text-slate-400">
+                          {theme.badge}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                        {t.category}
+                      <span className="text-[10px] font-bold text-blue-600 block">
+                        {theme.category}
                       </span>
-                      <p className="text-xs text-slate-600 leading-relaxed">{t.tagline}</p>
                     </div>
 
-                    <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-slate-500">{t.badge}</span>
-                      <span className={`font-bold ${isSelected ? 'text-blue-600' : 'text-slate-400'}`}>
-                        {isSelected ? 'Previewing' : 'Select'}
+                    <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
+                      <span className="font-mono text-slate-500">{theme.particleHue}° Spectrum</span>
+                      <span
+                        className={`font-extrabold ${
+                          isCurrentlyActive
+                            ? 'text-emerald-600'
+                            : isSelectedForPreview
+                            ? 'text-blue-600'
+                            : 'text-slate-400'
+                        }`}
+                      >
+                        {isCurrentlyActive
+                          ? '● Active'
+                          : isSelectedForPreview
+                          ? 'Previewing'
+                          : 'Click to Preview'}
                       </span>
                     </div>
                   </div>
@@ -201,58 +263,9 @@ export const AdminAnimationSettingsPage: React.FC = () => {
               })}
             </div>
 
-            {/* Quick Publish Banner */}
-            <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-900 text-white flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">Ready to Deploy?</span>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Publishing updates the public landing page immediately for all users.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleApplyTheme}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 shadow-md transition-all cursor-pointer whitespace-nowrap ml-4"
-              >
-                Apply Live
-              </button>
-            </div>
           </div>
         </div>
 
-      </div>
-
-      {/* 3. 150 ANIMATION CONCEPT NAME LIBRARY REFERENCE */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-card">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">150 Animation Concept Library</h3>
-            <p className="text-xs text-slate-500">Enterprise visual style inspiration catalog</p>
-          </div>
-
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchConcept}
-              onChange={e => setSearchConcept(e.target.value)}
-              placeholder="Search concepts..."
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-blue-600"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2.5 max-h-80 overflow-y-auto pr-1">
-          {filteredConcepts.map((name, index) => (
-            <div
-              key={index}
-              className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors flex items-center gap-2"
-            >
-              <span className="text-[10px] font-mono text-slate-400">#{index + 1}</span>
-              <span className="truncate">{name}</span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

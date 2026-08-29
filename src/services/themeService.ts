@@ -1,13 +1,5 @@
-export type AnimationThemeId =
-  | 'quantum-core'
-  | 'nexus-prime'
-  | 'neural-pulse'
-  | 'digital-matrix'
-  | 'enterprise-core'
-  | 'cyber-flux';
-
 export interface AnimationThemeConfig {
-  id: AnimationThemeId;
+  id: string;
   name: string;
   category: string;
   tagline: string;
@@ -16,99 +8,149 @@ export interface AnimationThemeConfig {
   glowColor: string;
   badge: string;
   particleHue: number;
+  ringSpeed: number;
+  pulseRate: number;
 }
 
-export const ANIMATION_THEMES: Record<AnimationThemeId, AnimationThemeConfig> = {
-  'quantum-core': {
-    id: 'quantum-core',
-    name: 'Quantum Core',
-    category: 'Quantum Dynamics',
-    tagline: 'Gyroscopic laser orbits with central fusion core & glowing reactor HUD',
-    primaryColor: '#06b6d4', // Cyan
-    secondaryColor: '#10b981', // Emerald
-    glowColor: 'rgba(6, 182, 212, 0.4)',
-    badge: 'Quantum Grade',
-    particleHue: 180
-  },
-  'nexus-prime': {
-    id: 'nexus-prime',
-    name: 'Nexus Prime',
-    category: 'Nexus Architecture',
-    tagline: 'Flowing connected data streams & neural communication bridges',
-    primaryColor: '#3b82f6', // Blue
-    secondaryColor: '#8b5cf6', // Purple
-    glowColor: 'rgba(59, 130, 246, 0.4)',
-    badge: 'Enterprise Nexus',
-    particleHue: 220
-  },
-  'neural-pulse': {
-    id: 'neural-pulse',
-    name: 'Neural Pulse',
-    category: 'Neural Networks',
-    tagline: 'Constellation intelligence grid with interactive mouse node physics',
-    primaryColor: '#10b981', // Emerald
-    secondaryColor: '#06b6d4', // Cyan
-    glowColor: 'rgba(16, 185, 129, 0.4)',
-    badge: 'Neural Engine',
-    particleHue: 155
-  },
-  'digital-matrix': {
-    id: 'digital-matrix',
-    name: 'Digital Matrix',
-    category: 'Digital Stream',
-    tagline: 'Geometric high-frequency data matrices and cyber coordinates',
-    primaryColor: '#a855f7', // Purple
-    secondaryColor: '#ec4899', // Pink
-    glowColor: 'rgba(168, 85, 247, 0.4)',
-    badge: 'Matrix Architecture',
-    particleHue: 280
-  },
-  'enterprise-core': {
-    id: 'enterprise-core',
-    name: 'Enterprise Core',
-    category: 'Institutional SaaS',
-    tagline: 'Fintech-grade deep sapphire glow with smooth telemetry sweeps',
-    primaryColor: '#2563eb', // Royal Blue
-    secondaryColor: '#38bdf8', // Sky Blue
-    glowColor: 'rgba(37, 99, 235, 0.4)',
-    badge: 'Enterprise SaaS',
-    particleHue: 210
-  },
-  'cyber-flux': {
-    id: 'cyber-flux',
-    name: 'Cyber Flux',
-    category: 'High Velocity',
-    tagline: 'Hyper-speed chromatic light streams with particle acceleration',
-    primaryColor: '#f59e0b', // Amber
-    secondaryColor: '#ef4444', // Red/Orange
-    glowColor: 'rgba(245, 158, 11, 0.4)',
-    badge: 'Cyber Stream',
-    particleHue: 40
-  }
-};
+export const CONCEPT_150_NAMES: string[] = [
+  'Quantum Core', 'Nexus Flow', 'Neural Pulse', 'Quantum Grid', 'Core Fusion',
+  'Nexus Prime', 'Data Pulse', 'Quantum Flux', 'Nova Core', 'Neural Nexus',
+  'Infinity Core', 'Digital Orbit', 'Data Nexus', 'Cyber Flux', 'Quantum Sphere',
+  'Core Matrix', 'Nexus Wave', 'Neural Flow', 'Data Orbit', 'Quantum Wave',
+  'Nova Nexus', 'Digital Pulse', 'Core Orbit', 'Future Grid', 'Quantum Nexus',
+  'Neural Matrix', 'Infinity Grid', 'Data Fusion', 'Nova Pulse', 'Core Velocity',
+  'Quantum Horizon', 'Nexus Spectrum', 'Digital Fusion', 'Neural Orbit', 'Quantum Stream',
+  'Data Velocity', 'Nova Matrix', 'Core Spectrum', 'Cyber Nexus', 'Quantum Rise',
+  'Neural Spectrum', 'Infinity Nexus', 'Digital Horizon', 'Data Matrix', 'Quantum Vision',
+  'Nova Flux', 'Core Nexus', 'Neural Horizon', 'Quantum Infinity', 'Nexus Evolution',
+  'Quantum Axis', 'Quantum Vector', 'Quantum Engine', 'Quantum Link', 'Quantum Bridge',
+  'Quantum Network', 'Quantum Drive', 'Quantum Pulse', 'Quantum Vision', 'Quantum Matrix',
+  'Nexus Axis', 'Nexus Vector', 'Nexus Engine', 'Nexus Link', 'Nexus Bridge',
+  'Nexus Core', 'Nexus Network', 'Nexus Drive', 'Nexus Vision', 'Nexus Fusion',
+  'Neural Core', 'Neural Drive', 'Neural Link', 'Neural Bridge', 'Neural Engine',
+  'Neural Vector', 'Neural Grid', 'Neural Sphere', 'Neural Fusion', 'Neural Matrix',
+  'Data Core', 'Data Engine', 'Data Vector', 'Data Bridge', 'Data Network',
+  'Data Stream', 'Data Pulse', 'Data Horizon', 'Data Fusion', 'Data Spectrum',
+  'Digital Core', 'Digital Nexus', 'Digital Vector', 'Digital Engine', 'Digital Bridge',
+  'Digital Matrix', 'Digital Sphere', 'Digital Flow', 'Digital Pulse', 'Digital Horizon',
+  'Nova Vector', 'Nova Engine', 'Nova Grid', 'Nova Sphere', 'Nova Horizon',
+  'Nova Network', 'Nova Bridge', 'Nova Vision', 'Nova Drive', 'Nova Fusion',
+  'Core Engine', 'Core Vector', 'Core Network', 'Core Bridge', 'Core Vision',
+  'Core Pulse', 'Core Horizon', 'Core Fusion', 'Core Drive', 'Core Flow',
+  'Future Nexus', 'Future Core', 'Future Pulse', 'Future Matrix', 'Future Sphere',
+  'Future Vector', 'Future Flow', 'Future Fusion', 'Future Horizon', 'Future Network',
+  'Enterprise Nexus', 'Enterprise Core', 'Enterprise Flow', 'Enterprise Pulse', 'Enterprise Matrix',
+  'Enterprise Fusion', 'Enterprise Horizon', 'Enterprise Grid', 'Enterprise Sphere', 'Enterprise Vector',
+  'Smart Nexus', 'Smart Core', 'Smart Matrix', 'Smart Flow', 'Smart Pulse',
+  'Smart Fusion', 'Smart Grid', 'Smart Horizon', 'Smart Sphere', 'Smart Vector'
+];
 
-const THEME_STORAGE_KEY = 'eduprime_active_animation_theme';
+function generateThemeConfig(name: string, index: number): AnimationThemeConfig {
+  const slug = name.toLowerCase().replace(/\s+/g, '-');
+  
+  // Category detection
+  let category = 'Quantum Dynamics';
+  let hue = 180; // default cyan
+  let pri = '#06b6d4';
+  let sec = '#10b981';
+
+  if (name.includes('Nexus')) {
+    category = 'Nexus Architecture';
+    hue = 220; // Electric Blue
+    pri = '#3b82f6';
+    sec = '#8b5cf6';
+  } else if (name.includes('Neural')) {
+    category = 'Neural Intelligence';
+    hue = 155; // Emerald / Mint
+    pri = '#10b981';
+    sec = '#06b6d4';
+  } else if (name.includes('Data')) {
+    category = 'Data Stream';
+    hue = 195; // Ice Blue
+    pri = '#0ea5e9';
+    sec = '#6366f1';
+  } else if (name.includes('Digital')) {
+    category = 'Digital Matrix';
+    hue = 270; // Purple
+    pri = '#a855f7';
+    sec = '#ec4899';
+  } else if (name.includes('Nova') || name.includes('Cyber') || name.includes('Velocity')) {
+    category = 'High Velocity';
+    hue = 35; // Amber / Coral
+    pri = '#f59e0b';
+    sec = '#ef4444';
+  } else if (name.includes('Infinity') || name.includes('Horizon')) {
+    category = 'Infinity Horizon';
+    hue = 310; // Magenta / Neon
+    pri = '#d946ef';
+    sec = '#3b82f6';
+  } else if (name.includes('Enterprise')) {
+    category = 'Enterprise SaaS';
+    hue = 210; // Deep Sapphire
+    pri = '#2563eb';
+    sec = '#38bdf8';
+  } else if (name.includes('Smart')) {
+    category = 'Smart Ecosystem';
+    hue = 165; // Mint Green
+    pri = '#059669';
+    sec = '#3b82f6';
+  } else if (name.includes('Core')) {
+    category = 'Core Reactor';
+    hue = 185; // Cyan / Aqua
+    pri = '#0891b2';
+    sec = '#10b981';
+  }
+
+  // Slight variation per index
+  const adjustedHue = (hue + (index * 3)) % 360;
+
+  return {
+    id: slug,
+    name,
+    category,
+    tagline: `High-frequency dynamic visual system with ${category.toLowerCase()} geometry & physics.`,
+    primaryColor: pri,
+    secondaryColor: sec,
+    glowColor: `hsla(${adjustedHue}, 85%, 55%, 0.35)`,
+    badge: `Concept #${index + 1}`,
+    particleHue: adjustedHue,
+    ringSpeed: 0.005 + ((index % 5) * 0.003),
+    pulseRate: 2 + ((index % 4) * 0.8)
+  };
+}
+
+// Build 150 Themes Map
+export const ALL_150_THEMES: Record<string, AnimationThemeConfig> = {};
+CONCEPT_150_NAMES.forEach((name, idx) => {
+  const config = generateThemeConfig(name, idx);
+  ALL_150_THEMES[config.id] = config;
+  ALL_150_THEMES[name] = config; // allow lookup by name as well
+});
+
+const THEME_STORAGE_KEY = 'eduprime_active_animation_theme_id';
 
 export const themeService = {
   getActiveTheme(): AnimationThemeConfig {
     try {
-      const savedId = localStorage.getItem(THEME_STORAGE_KEY) as AnimationThemeId;
-      if (savedId && ANIMATION_THEMES[savedId]) {
-        return ANIMATION_THEMES[savedId];
+      const savedKey = localStorage.getItem(THEME_STORAGE_KEY);
+      if (savedKey && ALL_150_THEMES[savedKey]) {
+        return ALL_150_THEMES[savedKey];
       }
     } catch {}
-    return ANIMATION_THEMES['quantum-core'];
+    return ALL_150_THEMES['quantum-core'] || generateThemeConfig('Quantum Core', 0);
   },
 
-  setActiveTheme(themeId: AnimationThemeId): void {
-    if (ANIMATION_THEMES[themeId]) {
-      localStorage.setItem(THEME_STORAGE_KEY, themeId);
-      // Dispatch storage event so open tabs update in real time
+  setActiveTheme(themeIdOrName: string): AnimationThemeConfig {
+    const target = ALL_150_THEMES[themeIdOrName] || ALL_150_THEMES[themeIdOrName.toLowerCase().replace(/\s+/g, '-')];
+    if (target) {
+      localStorage.setItem(THEME_STORAGE_KEY, target.id);
       window.dispatchEvent(new Event('theme-changed'));
+      return target;
     }
+    return this.getActiveTheme();
   },
 
-  getAllThemes(): AnimationThemeConfig[] {
-    return Object.values(ANIMATION_THEMES);
+  getAll150Themes(): AnimationThemeConfig[] {
+    return CONCEPT_150_NAMES.map((name, idx) => generateThemeConfig(name, idx));
   }
 };

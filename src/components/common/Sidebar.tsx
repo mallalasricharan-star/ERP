@@ -17,6 +17,7 @@ import {
   CreditCard,
   CalendarClock,
   Package,
+  Sparkles,
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -42,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { name: 'Book Stock', path: '/admin/books', icon: Package },
     { name: 'Student ID Cards', path: '/admin/id-cards', icon: CreditCard },
     { name: 'Leave Approvals', path: '/admin/leaves', icon: CalendarClock },
+    { name: 'Animation Engine', path: '/admin/animation-settings', icon: Sparkles },
     { name: 'Database', path: '/admin/database', icon: Database },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];

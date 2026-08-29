@@ -19,6 +19,7 @@ import { AdminTeachers } from './pages/admin/AdminTeachers';
 import { AdminHeadmaster } from './pages/admin/AdminHeadmaster';
 import { AdminSubjects } from './pages/admin/AdminSubjects';
 import { AdminIdCardsPage } from './pages/admin/AdminIdCardsPage';
+import { AdminAnimationSettingsPage } from './pages/admin/AdminAnimationSettingsPage';
 import { AdminDatabase } from './pages/admin/AdminDatabase';
 import { AdminSettings } from './pages/admin/AdminSettings';
 
@@ -75,6 +76,7 @@ export const App: React.FC = () => {
               <Route path="books" element={<BookStockPage />} />
               <Route path="id-cards" element={<AdminIdCardsPage />} />
               <Route path="leaves" element={<LeaveManagementPage />} />
+              <Route path="animation-settings" element={<AdminAnimationSettingsPage />} />
               <Route path="database" element={<AdminDatabase />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>

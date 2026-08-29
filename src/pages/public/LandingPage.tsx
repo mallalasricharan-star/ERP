@@ -6,31 +6,23 @@ import {
   GraduationCap,
   School,
   ChevronRight,
-  RotateCcw,
   Sparkles
 } from 'lucide-react';
 import { FuturisticVisualizer } from '../../components/common/FuturisticVisualizer';
-import { CinematicWordReveal } from '../../components/common/CinematicWordReveal';
 import { themeService, AnimationThemeConfig } from '../../services/themeService';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTheme, setActiveTheme] = useState<AnimationThemeConfig>(themeService.getActiveTheme());
-  const [revealKey, setRevealKey] = useState<number>(0);
 
   // Listen to live Admin theme changes
   useEffect(() => {
     const handleThemeChange = () => {
       setActiveTheme(themeService.getActiveTheme());
-      setRevealKey(prev => prev + 1);
     };
     window.addEventListener('theme-changed', handleThemeChange);
     return () => window.removeEventListener('theme-changed', handleThemeChange);
   }, []);
-
-  const handleReplayReveal = () => {
-    setRevealKey(prev => prev + 1);
-  };
 
   return (
     <div className="min-h-screen lg:h-screen w-screen bg-[#050811] text-white flex flex-col justify-between relative overflow-hidden select-none font-sans">
@@ -42,28 +34,17 @@ export const LandingPage: React.FC = () => {
       />
       <div className="absolute -bottom-32 -right-32 w-[600px] h-[600px] bg-blue-600/15 rounded-full blur-[160px] pointer-events-none" />
 
-      {/* 1. TOP HEADER WITH REPLAY ACTION */}
-      <header className="pt-6 pb-2 px-6 flex items-center justify-between z-20 max-w-7xl w-full mx-auto">
-        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-lg">
+      {/* 1. TOP MINIMAL HEADER (Clean Logo, No Replay Button) */}
+      <header className="pt-6 pb-2 flex items-center justify-center z-20">
+        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-lg">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm transition-transform"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform"
             style={{ background: `linear-gradient(135deg, ${activeTheme.primaryColor}, ${activeTheme.secondaryColor})` }}
           >
-            <School className="w-4 h-4" />
+            <School className="w-5 h-5" />
           </div>
-          <span className="text-sm font-extrabold tracking-tight text-white">EduPrime ERP</span>
+          <span className="text-base font-extrabold tracking-tight text-white">EduPrime ERP</span>
         </div>
-
-        {/* Replay Word-to-Full-Name Reveal */}
-        <button
-          type="button"
-          onClick={handleReplayReveal}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/15 text-slate-300 hover:text-cyan-300 text-xs font-bold border border-white/10 transition-all cursor-pointer backdrop-blur-md"
-          title="Replay Word-to-Full-Name Reveal"
-        >
-          <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Replay Reveal</span>
-        </button>
       </header>
 
       {/* 2. MAIN SINGLE-SCREEN 2-COLUMN VIEWPORT */}
@@ -78,25 +59,31 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Word-to-Full-Name Reveal + 3 Dedicated Path Cards */}
+          {/* Right Column: Continuous EDUPRIME ERP Title + 3 Dedicated Path Cards */}
           <div className="lg:col-span-7 flex flex-col justify-center space-y-6">
             
-            {/* 🎬 Word-to-Full-Name Morphing Title Sequence */}
-            <div className="text-left space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest">
+            {/* Continuous EDUPRIME ERP Design Header */}
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Next-Gen Enterprise Ecosystem</span>
+                <span>Enterprise School Ecosystem</span>
               </div>
 
-              {/* Dynamic Word Reveal: e.g. "QUANTUM" -> "QUANTUM CORE" or "EDUPRIME" -> "EDUPRIME ERP" */}
-              <div className="pt-1">
-                <CinematicWordReveal
-                  fullName={activeTheme.name.toUpperCase()}
-                  primaryColor={activeTheme.primaryColor}
-                  secondaryColor={activeTheme.secondaryColor}
-                  glowColor={activeTheme.glowColor}
-                  replayKey={revealKey}
-                  className="items-start"
+              {/* Continuous EDUPRIME ERP Gradient Title */}
+              <div>
+                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-none">
+                  EDUPRIME{' '}
+                  <span className="bg-gradient-to-r from-lime-300 via-emerald-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(34,211,238,0.5)]">
+                    ERP
+                  </span>
+                </h1>
+                
+                {/* Glowing Laser Underline */}
+                <div
+                  className="h-1 rounded-full mt-3 w-48 shadow-lg transition-colors duration-1000"
+                  style={{
+                    background: `linear-gradient(90deg, ${activeTheme.primaryColor}, ${activeTheme.secondaryColor}, transparent)`
+                  }}
                 />
               </div>
 

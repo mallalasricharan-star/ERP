@@ -9,7 +9,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { FuturisticVisualizer } from '../../components/common/FuturisticVisualizer';
-import { CinematicWordReveal } from '../../components/common/CinematicWordReveal';
+import { CinematicWordReveal } from '../../components/letters';
 import { themeService, AnimationThemeConfig } from '../../services/themeService';
 
 export const LandingPage: React.FC = () => {

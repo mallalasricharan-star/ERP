@@ -1,7 +1,18 @@
+export type VisualAnimationType =
+  | 'quantum-gyro'
+  | 'neural-mesh'
+  | 'cosmic-orbit'
+  | 'waveform-pulse'
+  | 'cyber-tunnel'
+  | 'warp-hyperspace'
+  | 'polygon-crystal'
+  | 'plasma-vortex';
+
 export interface AnimationThemeConfig {
   id: string;
   name: string;
   category: string;
+  visualType: VisualAnimationType;
   tagline: string;
   primaryColor: string;
   secondaryColor: string;
@@ -45,8 +56,21 @@ export const CONCEPT_150_NAMES: string[] = [
   'Smart Fusion', 'Smart Grid', 'Smart Horizon', 'Smart Sphere', 'Smart Vector'
 ];
 
+function determineVisualType(name: string): VisualAnimationType {
+  const n = name.toLowerCase();
+  if (n.includes('orbit') || n.includes('sphere')) return 'cosmic-orbit';
+  if (n.includes('pulse') || n.includes('wave') || n.includes('frequency')) return 'waveform-pulse';
+  if (n.includes('matrix') || n.includes('grid') || n.includes('digital')) return 'cyber-tunnel';
+  if (n.includes('velocity') || n.includes('nova') || n.includes('flux') || n.includes('drive')) return 'warp-hyperspace';
+  if (n.includes('vector') || n.includes('axis') || n.includes('enterprise')) return 'polygon-crystal';
+  if (n.includes('flow') || n.includes('stream') || n.includes('fusion')) return 'plasma-vortex';
+  if (n.includes('neural') || n.includes('nexus') || n.includes('network') || n.includes('bridge') || n.includes('link')) return 'neural-mesh';
+  return 'quantum-gyro';
+}
+
 function generateThemeConfig(name: string, index: number): AnimationThemeConfig {
   const slug = name.toLowerCase().replace(/\s+/g, '-');
+  const visualType = determineVisualType(name);
   
   // Category detection
   let category = 'Quantum Dynamics';
@@ -101,14 +125,14 @@ function generateThemeConfig(name: string, index: number): AnimationThemeConfig 
     sec = '#10b981';
   }
 
-  // Slight variation per index
   const adjustedHue = (hue + (index * 3)) % 360;
 
   return {
     id: slug,
     name,
     category,
-    tagline: `High-frequency dynamic visual system with ${category.toLowerCase()} geometry & physics.`,
+    visualType,
+    tagline: `Engineered with ${visualType.replace('-', ' ').toUpperCase()} geometry, live particle dynamics & spectrum physics.`,
     primaryColor: pri,
     secondaryColor: sec,
     glowColor: `hsla(${adjustedHue}, 85%, 55%, 0.35)`,
@@ -124,7 +148,7 @@ export const ALL_150_THEMES: Record<string, AnimationThemeConfig> = {};
 CONCEPT_150_NAMES.forEach((name, idx) => {
   const config = generateThemeConfig(name, idx);
   ALL_150_THEMES[config.id] = config;
-  ALL_150_THEMES[name] = config; // allow lookup by name as well
+  ALL_150_THEMES[name] = config;
 });
 
 const THEME_STORAGE_KEY = 'eduprime_active_animation_theme_id';

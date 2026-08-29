@@ -5,23 +5,32 @@ import {
   UserCheck,
   GraduationCap,
   School,
-  ChevronRight
+  ChevronRight,
+  RotateCcw,
+  Sparkles
 } from 'lucide-react';
 import { FuturisticVisualizer } from '../../components/common/FuturisticVisualizer';
+import { CinematicWordReveal } from '../../components/common/CinematicWordReveal';
 import { themeService, AnimationThemeConfig } from '../../services/themeService';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTheme, setActiveTheme] = useState<AnimationThemeConfig>(themeService.getActiveTheme());
+  const [revealKey, setRevealKey] = useState<number>(0);
 
   // Listen to live Admin theme changes
   useEffect(() => {
     const handleThemeChange = () => {
       setActiveTheme(themeService.getActiveTheme());
+      setRevealKey(prev => prev + 1);
     };
     window.addEventListener('theme-changed', handleThemeChange);
     return () => window.removeEventListener('theme-changed', handleThemeChange);
   }, []);
+
+  const handleReplayReveal = () => {
+    setRevealKey(prev => prev + 1);
+  };
 
   return (
     <div className="min-h-screen lg:h-screen w-screen bg-[#050811] text-white flex flex-col justify-between relative overflow-hidden select-none font-sans">
@@ -33,21 +42,32 @@ export const LandingPage: React.FC = () => {
       />
       <div className="absolute -bottom-32 -right-32 w-[600px] h-[600px] bg-blue-600/15 rounded-full blur-[160px] pointer-events-none" />
 
-      {/* 1. TOP MINIMAL HEADER */}
-      <header className="pt-6 pb-2 flex items-center justify-center z-20">
-        <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-lg">
+      {/* 1. TOP HEADER WITH REPLAY ACTION */}
+      <header className="pt-6 pb-2 px-6 flex items-center justify-between z-20 max-w-7xl w-full mx-auto">
+        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-lg">
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm transition-transform"
             style={{ background: `linear-gradient(135deg, ${activeTheme.primaryColor}, ${activeTheme.secondaryColor})` }}
           >
-            <School className="w-5 h-5" />
+            <School className="w-4 h-4" />
           </div>
-          <span className="text-base font-extrabold tracking-tight text-white">EduPrime ERP</span>
+          <span className="text-sm font-extrabold tracking-tight text-white">EduPrime ERP</span>
         </div>
+
+        {/* Replay Word-to-Full-Name Reveal */}
+        <button
+          type="button"
+          onClick={handleReplayReveal}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/15 text-slate-300 hover:text-cyan-300 text-xs font-bold border border-white/10 transition-all cursor-pointer backdrop-blur-md"
+          title="Replay Word-to-Full-Name Reveal"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Replay Reveal</span>
+        </button>
       </header>
 
       {/* 2. MAIN SINGLE-SCREEN 2-COLUMN VIEWPORT */}
-      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto z-10 py-4">
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto z-10 py-2">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center w-full">
           
           {/* Left Column: Glass Glow Card with Futuristic 3D Visualizer */}
@@ -58,34 +78,50 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Exactly 3 Dedicated Path Selection Cards with High-Impact Typography */}
-          <div className="lg:col-span-7 flex flex-col justify-center space-y-6 sm:space-y-7">
-            <div>
-              <h1 className="text-5xl sm:text-6xl font-black tracking-tight text-white leading-none">
-                CHOOSE <span className="bg-gradient-to-r from-lime-300 via-emerald-300 to-cyan-300 bg-clip-text text-transparent">YOUR PATH</span>
-              </h1>
-              <p className="mt-3 text-base sm:text-lg text-slate-300 font-medium leading-relaxed">
+          {/* Right Column: Word-to-Full-Name Reveal + 3 Dedicated Path Cards */}
+          <div className="lg:col-span-7 flex flex-col justify-center space-y-6">
+            
+            {/* 🎬 Word-to-Full-Name Morphing Title Sequence */}
+            <div className="text-left space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Next-Gen Enterprise Ecosystem</span>
+              </div>
+
+              {/* Dynamic Word Reveal: e.g. "QUANTUM" -> "QUANTUM CORE" or "EDUPRIME" -> "EDUPRIME ERP" */}
+              <div className="pt-1">
+                <CinematicWordReveal
+                  fullName={activeTheme.name.toUpperCase()}
+                  primaryColor={activeTheme.primaryColor}
+                  secondaryColor={activeTheme.secondaryColor}
+                  glowColor={activeTheme.glowColor}
+                  replayKey={revealKey}
+                  className="items-start"
+                />
+              </div>
+
+              <p className="text-base sm:text-lg text-slate-300 font-medium leading-relaxed pt-1">
                 Select your designated institutional authority portal to open your workspace
               </p>
             </div>
 
             {/* Exactly 3 Separate Large Font Login Cards */}
-            <div className="space-y-4 pt-1">
+            <div className="space-y-3.5 pt-1">
               
               {/* 1. Faculty Login */}
               <div
                 onClick={() => navigate('/login/teacher')}
-                className="group p-5 sm:p-6 rounded-3xl bg-[#0e1628]/90 hover:bg-[#16243f] border-2 border-slate-800 hover:border-cyan-400 shadow-xl hover:shadow-cyan-500/20 transition-all duration-300 cursor-pointer flex items-center justify-between transform hover:-translate-y-1"
+                className="group p-5 sm:p-5.5 rounded-3xl bg-[#0e1628]/90 hover:bg-[#16243f] border-2 border-slate-800 hover:border-cyan-400 shadow-xl hover:shadow-cyan-500/20 transition-all duration-300 cursor-pointer flex items-center justify-between transform hover:-translate-y-1"
               >
                 <div className="flex items-center gap-4 sm:gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-cyan-500/15 group-hover:bg-cyan-500/25 text-cyan-400 border border-cyan-500/30 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm flex-shrink-0">
-                    <GraduationCap className="w-8 h-8" />
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-cyan-500/15 group-hover:bg-cyan-500/25 text-cyan-400 border border-cyan-500/30 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm flex-shrink-0">
+                    <GraduationCap className="w-7 h-7 sm:w-8 sm:h-8" />
                   </div>
                   <div>
                     <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-cyan-300 transition-colors">
                       Faculty / Teacher Login
                     </h3>
-                    <p className="text-sm sm:text-base font-semibold text-slate-300 mt-1">
+                    <p className="text-sm sm:text-base font-semibold text-slate-300 mt-0.5">
                       Class roll call, attendance & academic score cards
                     </p>
                   </div>
@@ -98,17 +134,17 @@ export const LandingPage: React.FC = () => {
               {/* 2. Head Master Login */}
               <div
                 onClick={() => navigate('/login/headmaster')}
-                className="group p-5 sm:p-6 rounded-3xl bg-[#0e1628]/90 hover:bg-[#16243f] border-2 border-slate-800 hover:border-emerald-400 shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 cursor-pointer flex items-center justify-between transform hover:-translate-y-1"
+                className="group p-5 sm:p-5.5 rounded-3xl bg-[#0e1628]/90 hover:bg-[#16243f] border-2 border-slate-800 hover:border-emerald-400 shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 cursor-pointer flex items-center justify-between transform hover:-translate-y-1"
               >
                 <div className="flex items-center gap-4 sm:gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 group-hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm flex-shrink-0">
-                    <UserCheck className="w-8 h-8" />
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500/15 group-hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm flex-shrink-0">
+                    <UserCheck className="w-7 h-7 sm:w-8 sm:h-8" />
                   </div>
                   <div>
                     <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-emerald-300 transition-colors">
                       Head Master Executive Login
                     </h3>
-                    <p className="text-sm sm:text-base font-semibold text-slate-300 mt-1">
+                    <p className="text-sm sm:text-base font-semibold text-slate-300 mt-0.5">
                       School-wide cohort supervision, admissions & leave approvals
                     </p>
                   </div>
@@ -121,17 +157,17 @@ export const LandingPage: React.FC = () => {
               {/* 3. Master Admin PIN Login */}
               <div
                 onClick={() => navigate('/login/admin')}
-                className="group p-5 sm:p-6 rounded-3xl bg-[#0e1628]/90 hover:bg-[#16243f] border-2 border-slate-800 hover:border-lime-400 shadow-xl hover:shadow-lime-400/20 transition-all duration-300 cursor-pointer flex items-center justify-between transform hover:-translate-y-1"
+                className="group p-5 sm:p-5.5 rounded-3xl bg-[#0e1628]/90 hover:bg-[#16243f] border-2 border-slate-800 hover:border-lime-400 shadow-xl hover:shadow-lime-400/20 transition-all duration-300 cursor-pointer flex items-center justify-between transform hover:-translate-y-1"
               >
                 <div className="flex items-center gap-4 sm:gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-lime-400/15 group-hover:bg-lime-400/25 text-lime-400 border border-lime-400/30 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm flex-shrink-0">
-                    <ShieldCheck className="w-8 h-8" />
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-lime-400/15 group-hover:bg-lime-400/25 text-lime-400 border border-lime-400/30 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm flex-shrink-0">
+                    <ShieldCheck className="w-7 h-7 sm:w-8 sm:h-8" />
                   </div>
                   <div>
                     <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-lime-300 transition-colors">
                       Master Admin Control Login
                     </h3>
-                    <p className="text-sm sm:text-base font-semibold text-slate-300 mt-1">
+                    <p className="text-sm sm:text-base font-semibold text-slate-300 mt-0.5">
                       6-digit PIN authenticated system governance & ID cards
                     </p>
                   </div>

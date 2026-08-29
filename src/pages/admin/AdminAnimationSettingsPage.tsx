@@ -121,7 +121,7 @@ export const AdminAnimationSettingsPage: React.FC = () => {
 
             {/* Dark Visualizer Frame */}
             <div className="w-full aspect-square rounded-2xl bg-[#050811] border border-slate-800 p-3 relative overflow-hidden shadow-inner flex items-center justify-center">
-              <FuturisticVisualizer theme={currentPreviewTheme} className="w-full h-full" showHUD={true} />
+              <FuturisticVisualizer theme={currentPreviewTheme} className="w-full h-full" />
             </div>
 
             {/* Theme Details Metadata */}

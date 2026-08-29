@@ -4,13 +4,11 @@ import { AnimationThemeConfig } from '../../services/themeService';
 interface FuturisticVisualizerProps {
   theme: AnimationThemeConfig;
   className?: string;
-  showHUD?: boolean;
 }
 
 export const FuturisticVisualizer: React.FC<FuturisticVisualizerProps> = ({
   theme,
-  className = 'w-full h-full',
-  showHUD = true
+  className = 'w-full h-full'
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -60,9 +58,6 @@ export const FuturisticVisualizer: React.FC<FuturisticVisualizerProps> = ({
       vx: number;
       vy: number;
       size: number;
-      angle: number;
-      dist: number;
-      speed: number;
     }[] = [];
 
     for (let i = 0; i < numParticles; i++) {
@@ -71,10 +66,7 @@ export const FuturisticVisualizer: React.FC<FuturisticVisualizerProps> = ({
         y: Math.random() * height,
         vx: (Math.random() - 0.5) * 1.4,
         vy: (Math.random() - 0.5) * 1.4,
-        size: 1.5 + Math.random() * 2.5,
-        angle: Math.random() * Math.PI * 2,
-        dist: 40 + Math.random() * 100,
-        speed: 0.01 + Math.random() * 0.02
+        size: 1.5 + Math.random() * 2.5
       });
     }
 
@@ -212,19 +204,6 @@ export const FuturisticVisualizer: React.FC<FuturisticVisualizerProps> = ({
   return (
     <div className={`relative flex items-center justify-center ${className}`}>
       <canvas ref={canvasRef} className="w-full h-full object-contain cursor-crosshair z-0" />
-
-      {showHUD && (
-        <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[11px] font-bold text-slate-300 px-3.5 py-1.5 rounded-2xl bg-black/60 border border-white/10 backdrop-blur-md">
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: theme.primaryColor }}
-            />
-            <span className="font-mono text-cyan-300">{theme.name}</span>
-          </div>
-          <span className="text-[10px] uppercase font-bold text-slate-400">{theme.badge}</span>
-        </div>
-      )}
     </div>
   );
 };

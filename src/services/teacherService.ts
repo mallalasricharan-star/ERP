@@ -170,5 +170,46 @@ export const teacherService = {
     });
 
     return true;
+  },
+
+  async mapTeacherToClass(classId: string, classNumber: number, teacherId: string): Promise<void> {
+    const session = authService.getCurrentSession();
+    if (!session || session.user.role !== 'admin') {
+      throw new Error('Permission Denied: Only Admin can map teachers to classes.');
+    }
+
+    const className = `Class ${classNumber}`;
+
+    // 1. Unassign any other teacher currently mapped to this class
+    await supabase
+      .from('teachers')
+      .update({ assigned_class: 'Not Assigned', assigned_class_id: null })
+      .or(`assigned_class.eq.${className},assigned_class_id.eq.${classId}`);
+
+    // 2. If a valid teacherId was provided, assign that teacher
+    if (teacherId) {
+      const { data: teacher, error } = await supabase
+        .from('teachers')
+        .update({
+          assigned_class: className,
+          assigned_class_id: classId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', teacherId)
+        .select('full_name')
+        .single();
+
+      if (error) throw error;
+
+      await supabase.from('audit_logs').insert({
+        user_id: session.user.id,
+        user_email: session.user.email,
+        user_role: 'admin',
+        action: 'MAP_TEACHER_ATTENDANCE',
+        table_name: 'teachers',
+        record_id: teacherId,
+        description: `Admin mapped ${teacher.full_name} to take attendance for ${className}`
+      });
+    }
   }
 };

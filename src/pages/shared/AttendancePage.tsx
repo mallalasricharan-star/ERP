@@ -18,7 +18,9 @@ import {
   User,
   Check,
   X,
-  AlertTriangle
+  AlertTriangle,
+  UserCheck,
+  ArrowRight
 } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
@@ -26,9 +28,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { attendanceService, AttendanceSummary } from '../../services/attendanceService';
 import { classService } from '../../services/classService';
+import { teacherService } from '../../services/teacherService';
 import { studentService } from '../../services/studentService';
 import { excelService } from '../../services/excelService';
-import { ClassRoom, Student, Attendance } from '../../types';
+import { ClassRoom, Student, Attendance, Teacher } from '../../types';
 import { formatDate, toISODate } from '../../lib/utils';
 
 export const AttendancePage: React.FC = () => {
@@ -40,6 +43,7 @@ export const AttendancePage: React.FC = () => {
   const isHeadMaster = role === 'head_master';
 
   const [classes, setClasses] = useState<ClassRoom[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(toISODate());
 
@@ -59,19 +63,37 @@ export const AttendancePage: React.FC = () => {
   const [adminClassRecords, setAdminClassRecords] = useState<Attendance[]>([]);
   const [isLoadingAdminView, setIsLoadingAdminView] = useState<boolean>(false);
 
-  // Load Classes on mount
-  const loadClassesData = async () => {
+  // Admin Teacher-to-Class Mapping Modal
+  const [isMapTeacherModalOpen, setIsMapTeacherModalOpen] = useState<boolean>(false);
+  const [mapForm, setMapForm] = useState<{ classId: string; classNumber: number; teacherId: string }>({
+    classId: '',
+    classNumber: 1,
+    teacherId: ''
+  });
+  const [isSubmittingMap, setIsSubmittingMap] = useState<boolean>(false);
+
+  // Load Classes and Teachers on mount
+  const loadClassesAndTeachers = async () => {
     setIsLoading(true);
     try {
-      const clsList = await classService.getClasses();
+      const [clsList, tchrList] = await Promise.all([
+        classService.getClasses(),
+        teacherService.getTeachers()
+      ]);
       setClasses(clsList);
+      setTeachers(tchrList);
 
-      if (isTeacher && user?.assigned_class) {
-        const matched = clsList.find(
-          c => `Class ${c.class_number}` === user.assigned_class || c.id === user.assigned_class_id
+      if (isTeacher) {
+        // Find class mapped to this logged-in teacher
+        const currentTeacherObj = tchrList.find(t => t.email === user?.email || t.full_name === user?.full_name);
+        const mappedClass = clsList.find(
+          c => c.id === currentTeacherObj?.assigned_class_id || `Class ${c.class_number}` === currentTeacherObj?.assigned_class || `Class ${c.class_number}` === user?.assigned_class
         );
-        if (matched) setSelectedClassId(matched.id);
-        else setSelectedClassId(clsList[0]?.id || '');
+        if (mappedClass) {
+          setSelectedClassId(mappedClass.id);
+        } else {
+          setSelectedClassId('');
+        }
       } else if (!selectedClassId && clsList.length > 0) {
         setSelectedClassId(clsList[0].id);
       }
@@ -81,7 +103,7 @@ export const AttendancePage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadClassesData();
+    loadClassesAndTeachers();
   }, [isTeacher, user]);
 
   // Load Attendance data for selected class & date
@@ -158,7 +180,7 @@ export const AttendancePage: React.FC = () => {
       setIsAttendanceSaved(true);
       setHasEditPermission(false);
       loadClassAttendanceData();
-      loadClassesData();
+      loadClassesAndTeachers();
     } catch (err: any) {
       toast.error(err.message || 'Failed to save attendance');
     } finally {
@@ -175,7 +197,7 @@ export const AttendancePage: React.FC = () => {
       attendanceService.grantEditPermission(classId, selectedDate);
       toast.success('Edit permission granted. Teachers & Headmaster can now modify this class attendance.');
     }
-    loadClassesData();
+    loadClassesAndTeachers();
   };
 
   // Admin: View Class Attendance Roster Modal
@@ -190,13 +212,42 @@ export const AttendancePage: React.FC = () => {
     }
   };
 
+  // Admin: Open Map Teacher Modal for a Class
+  const handleOpenMapTeacher = (cls: ClassRoom) => {
+    const currentTeacher = teachers.find(
+      t => t.assigned_class_id === cls.id || t.assigned_class === `Class ${cls.class_number}`
+    );
+    setMapForm({
+      classId: cls.id,
+      classNumber: cls.class_number,
+      teacherId: currentTeacher?.id || ''
+    });
+    setIsMapTeacherModalOpen(true);
+  };
+
+  // Admin: Save Teacher Mapping
+  const handleSaveTeacherMapping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingMap(true);
+    try {
+      await teacherService.mapTeacherToClass(mapForm.classId, mapForm.classNumber, mapForm.teacherId);
+      toast.success(`Teacher attendance authority mapped to Class ${mapForm.classNumber} successfully.`);
+      setIsMapTeacherModalOpen(false);
+      loadClassesAndTeachers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to map teacher to class');
+    } finally {
+      setIsSubmittingMap(false);
+    }
+  };
+
   const activeSelectedClassObj = classes.find(c => c.id === selectedClassId);
 
   return (
     <div className="space-y-6">
       
       {/* ================================================================= */}
-      {/* 🛡️ 1. ADMIN ATTENDANCE VIEW (Percentages & Permission Grants Only) */}
+      {/* 🛡️ 1. ADMIN ATTENDANCE VIEW (Percentages, Teacher Mapping, Edit Locks) */}
       {/* ================================================================= */}
       {isAdmin ? (
         <div className="space-y-6">
@@ -205,11 +256,11 @@ export const AttendancePage: React.FC = () => {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold mb-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                <span>Executive Attendance Oversight</span>
+                <span>Executive Attendance Governance</span>
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Institutional Attendance Governance</h1>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Institutional Attendance & Teacher Authority</h1>
               <p className="text-sm text-slate-500 mt-1">
-                Monitor live percentage statistics across classes and grant edit permissions when corrections are needed
+                Map teachers to class attendance cohorts, monitor live percentages, and unlock edit permissions
               </p>
             </div>
 
@@ -285,13 +336,24 @@ export const AttendancePage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Class Teacher */}
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-4 flex items-center gap-2.5 text-xs text-slate-700">
-                        <User className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                        <div>
-                          <span className="text-slate-400 block text-[10px] uppercase font-semibold">Class Teacher</span>
-                          <span className="font-semibold">{cls.assigned_teacher_name}</span>
+                      {/* Mapped Teacher Authority with 1-Click Reassign */}
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 mb-4 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          <div>
+                            <span className="text-slate-400 block text-[10px] uppercase font-semibold">Mapped Teacher</span>
+                            <span className="font-bold text-slate-900">{cls.assigned_teacher_name}</span>
+                          </div>
                         </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenMapTeacher(cls)}
+                          className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] border border-blue-200 transition-colors cursor-pointer"
+                          title="Assign or change teacher for this class"
+                        >
+                          Map Teacher
+                        </button>
                       </div>
 
                       {/* Presence Metrics */}
@@ -354,18 +416,18 @@ export const AttendancePage: React.FC = () => {
       ) : (
 
         /* ================================================================= */
-        /* 👨‍🏫 2. TEACHER & HEAD MASTER ATTENDANCE PORTAL (Roll Call & Checkbox) */
+        /* 👨‍🏫 2. TEACHER & HEAD MASTER ATTENDANCE PORTAL */
         /* ================================================================= */
         <div className="space-y-6">
           
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Class Daily Attendance Roll Call</h1>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Daily Attendance Roll Call</h1>
               <p className="text-sm text-slate-500 mt-1">
                 {isTeacher
                   ? `Mark roll call for your assigned cohort (${activeSelectedClassObj ? `Class ${activeSelectedClassObj.class_number}-${activeSelectedClassObj.section}` : 'Class'})`
-                  : 'Supervise and mark roll call for any school class cohort'}
+                  : 'Head Master: Supervise and mark attendance for ALL class cohorts'}
               </p>
             </div>
 
@@ -383,201 +445,273 @@ export const AttendancePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Head Master Class Selector (Headmaster can choose any class) */}
+          {/* 👔 Head Master Cohort Selector (Headmaster can give/take attendance for ALL classes) */}
           {isHeadMaster && (
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Filter className="w-4 h-4 text-slate-400" />
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Select Class Cohort:</span>
-                <select
-                  value={selectedClassId}
-                  onChange={e => setSelectedClassId(e.target.value)}
-                  className="py-1.5 px-3 text-sm rounded-xl border border-slate-200 focus:border-blue-600 outline-none font-bold text-slate-800 bg-white"
-                >
-                  {classes.map(c => (
-                    <option key={c.id} value={c.id}>
-                      Class {c.class_number} (Section {c.section}) - Teacher: {c.assigned_teacher_name}
-                    </option>
-                  ))}
-                </select>
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Head Master Class Cohort Access:</span>
+                  <span className="text-xs text-slate-500">You have full authority to mark roll calls across all classes</span>
+                </div>
               </div>
+
+              <select
+                value={selectedClassId}
+                onChange={e => setSelectedClassId(e.target.value)}
+                className="py-2 px-3 text-sm rounded-xl border border-slate-200 focus:border-emerald-600 outline-none font-bold text-slate-800 bg-white shadow-sm"
+              >
+                {classes.map(c => (
+                  <option key={c.id} value={c.id}>
+                    Class {c.class_number} (Section {c.section}) - Teacher: {c.assigned_teacher_name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
-          {/* Status Lock Banner */}
-          {isAttendanceSaved && !hasEditPermission ? (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between text-amber-900 text-xs font-semibold">
-              <div className="flex items-center gap-2.5">
-                <Lock className="w-4 h-4 text-amber-700 flex-shrink-0" />
-                <span>
-                  Attendance for <strong>{activeSelectedClassObj ? `Class ${activeSelectedClassObj.class_number}-${activeSelectedClassObj.section}` : 'this class'}</strong> on <strong>{selectedDate}</strong> is <strong>Submitted & Locked</strong>.
-                </span>
+          {/* 👨‍🏫 If Teacher is not mapped to any class */}
+          {isTeacher && !selectedClassId ? (
+            <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 shadow-card space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-7 h-7" />
               </div>
-              <span className="text-[11px] text-amber-700 bg-amber-100/80 px-2.5 py-1 rounded-lg">
-                Contact Admin to grant edit permission
-              </span>
+              <h3 className="text-lg font-bold text-slate-900">No Class Cohort Mapped</h3>
+              <p className="text-sm text-slate-500 max-w-md mx-auto">
+                You are currently not mapped to take attendance for a specific class cohort. Please contact the <strong>Master Administrator</strong> to map your class authority.
+              </p>
             </div>
-          ) : hasEditPermission ? (
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-emerald-900 text-xs font-semibold">
-              <Unlock className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-              <span>Admin has granted edit permission. You can now modify and save the roll call.</span>
-            </div>
-          ) : null}
+          ) : (
 
-          {/* 2-Column: Mapped Class Summary Card (Left) + Student Roll Call Table (Right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            {/* Left Column: Assigned Class Card */}
-            <div className="lg:col-span-4 space-y-4">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg border border-blue-100 shadow-sm">
-                    <School className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">
-                      Class {activeSelectedClassObj?.class_number || ''}
-                    </h3>
-                    <span className="text-xs font-semibold text-slate-400">
-                      Section {activeSelectedClassObj?.section || 'A'} • {activeSelectedClassObj?.academic_year || '2026-2027'}
+            <>
+              {/* Status Lock Banner */}
+              {isAttendanceSaved && !hasEditPermission ? (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between text-amber-900 text-xs font-semibold">
+                  <div className="flex items-center gap-2.5">
+                    <Lock className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                    <span>
+                      Attendance for <strong>{activeSelectedClassObj ? `Class ${activeSelectedClassObj.class_number}-${activeSelectedClassObj.section}` : 'this class'}</strong> on <strong>{selectedDate}</strong> is <strong>Submitted & Locked</strong>.
                     </span>
                   </div>
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-4 text-xs space-y-1">
-                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Assigned Teacher</span>
-                  <span className="font-bold text-slate-800">{activeSelectedClassObj?.assigned_teacher_name || 'Not Assigned'}</span>
-                </div>
-
-                {/* Live Counter */}
-                <div className="grid grid-cols-3 gap-2 text-center py-3 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Enrolled</span>
-                    <span className="text-base font-extrabold text-slate-900">{students.length}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-emerald-600 block">Present</span>
-                    <span className="text-base font-extrabold text-emerald-600">{presentCount}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-rose-500 block">Absent</span>
-                    <span className="text-base font-extrabold text-rose-600">{absentStudents.length}</span>
-                  </div>
-                </div>
-
-                {/* Quick Action Buttons */}
-                {(!isAttendanceSaved || hasEditPermission) && (
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={handleMarkAllPresent}
-                      className="px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer w-full text-center"
-                    >
-                      Mark All Present
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column: Student Attendance Table with Absent Checkboxes */}
-            <div className="lg:col-span-8">
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
-                
-                {/* Table Header */}
-                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">Student Roll Call List</h3>
-                    <p className="text-xs text-slate-500">Uncheck = Present • Check box = Absent</p>
-                  </div>
-
-                  <span className="text-xs font-bold text-slate-500">
-                    {students.length} Students Total
+                  <span className="text-[11px] text-amber-700 bg-amber-100/80 px-2.5 py-1 rounded-lg">
+                    Contact Admin to grant edit permission
                   </span>
                 </div>
+              ) : hasEditPermission ? (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-emerald-900 text-xs font-semibold">
+                  <Unlock className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                  <span>Admin has granted edit permission. You can now modify and save the roll call.</span>
+                </div>
+              ) : null}
 
-                {/* Students List */}
-                <div className="divide-y divide-slate-100 max-h-[460px] overflow-y-auto">
-                  {isLoading ? (
-                    <div className="py-12 text-center text-slate-400">Loading student list...</div>
-                  ) : students.length === 0 ? (
-                    <div className="py-12 text-center text-slate-400">No students enrolled in this class.</div>
-                  ) : (
-                    students.map(st => {
-                      const isAbsent = attendanceMap[st.id] === 'absent';
+              {/* 2-Column: Mapped Class Summary Card (Left) + Student Roll Call Table (Right) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* Left Column: Assigned Class Card */}
+                <div className="lg:col-span-4 space-y-4">
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg border border-blue-100 shadow-sm">
+                        <School className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900">
+                          Class {activeSelectedClassObj?.class_number || ''}
+                        </h3>
+                        <span className="text-xs font-semibold text-slate-400">
+                          Section {activeSelectedClassObj?.section || 'A'} • {activeSelectedClassObj?.academic_year || '2026-2027'}
+                        </span>
+                      </div>
+                    </div>
 
-                      return (
-                        <div
-                          key={st.id}
-                          onClick={() => handleToggleAbsent(st.id)}
-                          className={`p-4 flex items-center justify-between transition-colors cursor-pointer ${
-                            isAbsent
-                              ? 'bg-rose-50/70 hover:bg-rose-100/70'
-                              : 'hover:bg-slate-50'
-                          }`}
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mb-4 text-xs space-y-1">
+                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Assigned Teacher</span>
+                      <span className="font-bold text-slate-800">{activeSelectedClassObj?.assigned_teacher_name || 'Not Assigned'}</span>
+                    </div>
+
+                    {/* Live Counter */}
+                    <div className="grid grid-cols-3 gap-2 text-center py-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Enrolled</span>
+                        <span className="text-base font-extrabold text-slate-900">{students.length}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-emerald-600 block">Present</span>
+                        <span className="text-base font-extrabold text-emerald-600">{presentCount}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-rose-500 block">Absent</span>
+                        <span className="text-base font-extrabold text-rose-600">{absentStudents.length}</span>
+                      </div>
+                    </div>
+
+                    {/* Quick Action Buttons */}
+                    {(!isAttendanceSaved || hasEditPermission) && (
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={handleMarkAllPresent}
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer w-full text-center"
                         >
-                          <div className="flex items-center gap-3.5">
-                            <span className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center font-mono font-bold text-xs text-slate-700">
-                              #{st.roll_number}
-                            </span>
-                            <div>
-                              <span className="font-bold text-slate-900 text-sm block">{st.student_name}</span>
-                              <span className="text-slate-400 text-xs font-mono">Adm: {st.admission_number}</span>
-                            </div>
-                          </div>
-
-                          {/* Absent Checkbox */}
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                                isAbsent
-                                  ? 'bg-rose-100 text-rose-700'
-                                  : 'bg-emerald-50 text-emerald-700'
-                              }`}
-                            >
-                              {isAbsent ? 'ABSENT' : 'PRESENT'}
-                            </span>
-
-                            <input
-                              type="checkbox"
-                              checked={isAbsent}
-                              onChange={() => {}} // Handled by container click
-                              disabled={isAttendanceSaved && !hasEditPermission}
-                              className="w-5 h-5 rounded-lg text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+                          Mark All Present
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Save Attendance Button */}
-                <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                  <div className="text-xs font-medium text-slate-600">
-                    <span>Summary: </span>
-                    <strong className="text-emerald-600">{presentCount} Present</strong>,{' '}
-                    <strong className="text-rose-600">{absentStudents.length} Absent</strong>
-                  </div>
+                {/* Right Column: Student Attendance Table with Absent Checkboxes */}
+                <div className="lg:col-span-8">
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
+                    
+                    {/* Table Header */}
+                    <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900">Student Roll Call List</h3>
+                        <p className="text-xs text-slate-500">Uncheck = Present • Check box = Absent</p>
+                      </div>
 
-                  <button
-                    type="button"
-                    onClick={handleOpenReview}
-                    disabled={students.length === 0 || (isAttendanceSaved && !hasEditPermission)}
-                    className="px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-lg shadow-blue-600/25 transition-all disabled:opacity-40 disabled:shadow-none cursor-pointer flex items-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>Review & Save Attendance</span>
-                  </button>
+                      <span className="text-xs font-bold text-slate-500">
+                        {students.length} Students Total
+                      </span>
+                    </div>
+
+                    {/* Students List */}
+                    <div className="divide-y divide-slate-100 max-h-[460px] overflow-y-auto">
+                      {isLoading ? (
+                        <div className="py-12 text-center text-slate-400">Loading student list...</div>
+                      ) : students.length === 0 ? (
+                        <div className="py-12 text-center text-slate-400">No students enrolled in this class.</div>
+                      ) : (
+                        students.map(st => {
+                          const isAbsent = attendanceMap[st.id] === 'absent';
+
+                          return (
+                            <div
+                              key={st.id}
+                              onClick={() => handleToggleAbsent(st.id)}
+                              className={`p-4 flex items-center justify-between transition-colors cursor-pointer ${
+                                isAbsent
+                                  ? 'bg-rose-50/70 hover:bg-rose-100/70'
+                                  : 'hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3.5">
+                                <span className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center font-mono font-bold text-xs text-slate-700">
+                                  #{st.roll_number}
+                                </span>
+                                <div>
+                                  <span className="font-bold text-slate-900 text-sm block">{st.student_name}</span>
+                                  <span className="text-slate-400 text-xs font-mono">Adm: {st.admission_number}</span>
+                                </div>
+                              </div>
+
+                              {/* Absent Checkbox */}
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                                    isAbsent
+                                      ? 'bg-rose-100 text-rose-700'
+                                      : 'bg-emerald-50 text-emerald-700'
+                                  }`}
+                                >
+                                  {isAbsent ? 'ABSENT' : 'PRESENT'}
+                                </span>
+
+                                <input
+                                  type="checkbox"
+                                  checked={isAbsent}
+                                  onChange={() => {}} // Handled by row click
+                                  disabled={isAttendanceSaved && !hasEditPermission}
+                                  className="w-5 h-5 rounded-lg text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Save Attendance Button */}
+                    <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                      <div className="text-xs font-medium text-slate-600">
+                        <span>Summary: </span>
+                        <strong className="text-emerald-600">{presentCount} Present</strong>,{' '}
+                        <strong className="text-rose-600">{absentStudents.length} Absent</strong>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleOpenReview}
+                        disabled={students.length === 0 || (isAttendanceSaved && !hasEditPermission)}
+                        className="px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-lg shadow-blue-600/25 transition-all disabled:opacity-40 disabled:shadow-none cursor-pointer flex items-center gap-2"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Review & Save Attendance</span>
+                      </button>
+                    </div>
+
+                  </div>
                 </div>
 
               </div>
-            </div>
-
-          </div>
+            </>
+          )}
 
         </div>
       )}
+
+      {/* ================================================================= */}
+      {/* 🔗 ADMIN MAP TEACHER MODAL */}
+      {/* ================================================================= */}
+      <Modal
+        isOpen={isMapTeacherModalOpen}
+        onClose={() => setIsMapTeacherModalOpen(false)}
+        title={`Map Faculty Authority to Class ${mapForm.classNumber}`}
+      >
+        <form onSubmit={handleSaveTeacherMapping} className="space-y-4">
+          <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-900">
+            Select the designated faculty member who will be authorized to record daily attendance roll calls for <strong>Class {mapForm.classNumber}</strong>.
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Assigned Teacher *
+            </label>
+            <select
+              value={mapForm.teacherId}
+              onChange={e => setMapForm({ ...mapForm, teacherId: e.target.value })}
+              className="w-full py-2.5 px-3.5 text-sm rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none bg-white font-bold text-slate-800"
+            >
+              <option value="">-- Unassigned (No Teacher) --</option>
+              {teachers.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.full_name} ({t.employee_id}) - Current: {t.assigned_class || 'None'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsMapTeacherModalOpen(false)}
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmittingMap}
+              className="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
+            >
+              {isSubmittingMap ? 'Saving Mapping...' : 'Save Mapping'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* ================================================================= */}
       {/* 📋 REVIEW & SAVE CONFIRMATION MODAL (Shows Absent List) */}

@@ -4,103 +4,120 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 font-sans antialiased selection:bg-cyan-500 selection:text-black;
+    @apply bg-slate-950 text-white font-sans antialiased selection:bg-cyan-400 selection:text-black;
   }
 }
 
-/* Custom Cinematic & Movie-Grade Micro-Animations */
-@keyframes fadeIn {
-  from {
+/* 🎬 Cinematic Movie Title Sequence Keyframes */
+@keyframes cinematicZoomIn {
+  0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: scale(0.6) translateY(20px);
+    filter: blur(16px);
+    letter-spacing: 0.3em;
   }
-  to {
+  60% {
+    opacity: 1;
+    transform: scale(1.08) translateY(-4px);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    letter-spacing: 0.1em;
+  }
+}
+
+@keyframes cinematicFlyInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(60px) scale(0.85);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+@keyframes lightSweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulseGlowRing {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3), inset 0 0 15px rgba(6, 182, 212, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(6, 182, 212, 0.7), inset 0 0 25px rgba(6, 182, 212, 0.4);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes cardSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-@keyframes scaleUp {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes textShimmer {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes floatSlow {
+@keyframes floatInfinite {
   0%, 100% {
-    transform: translateY(0px) rotate(0deg);
+    transform: translateY(0px);
   }
   50% {
-    transform: translateY(-10px) rotate(1deg);
+    transform: translateY(-8px);
   }
 }
 
-@keyframes pulseGlow {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.08);
-  }
+.animate-movie-zoom {
+  animation: cinematicZoomIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes movieReveal {
-  0% {
-    opacity: 0;
-    filter: blur(12px);
-    letter-spacing: 0.3em;
-    transform: scale(0.92);
-  }
-  100% {
-    opacity: 1;
-    filter: blur(0px);
-    letter-spacing: normal;
-    transform: scale(1);
-  }
+.animate-fly-in {
+  animation: cinematicFlyInRight 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-scale-up {
-  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-text-shimmer {
+.animate-light-sweep {
+  background: linear-gradient(90deg, #ffffff 0%, #38bdf8 25%, #4ade80 50%, #38bdf8 75%, #ffffff 100%);
   background-size: 200% auto;
-  animation: textShimmer 4s ease infinite;
+  color: transparent;
+  -webkit-background-clip: text;
+  animation: lightSweep 3.5s linear infinite;
 }
 
-.animate-float-slow {
-  animation: floatSlow 6s ease-in-out infinite;
+.animate-glow-ring {
+  animation: pulseGlowRing 3s ease-in-out infinite;
 }
 
-.animate-pulse-glow {
-  animation: pulseGlow 4s ease-in-out infinite;
+.animate-card-1 {
+  animation: cardSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+  opacity: 0;
 }
 
-.animate-movie-reveal {
-  animation: movieReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-card-2 {
+  animation: cardSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+  opacity: 0;
+}
+
+.animate-card-3 {
+  animation: cardSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
+  opacity: 0;
+}
+
+.animate-float-infinite {
+  animation: floatInfinite 4s ease-in-out infinite;
 }
 
 /* Custom sleek scrollbar */
@@ -114,10 +131,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #334155;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #475569;
 }

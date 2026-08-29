@@ -7,35 +7,38 @@ import {
   School,
   ChevronRight,
   Sparkles,
-  Play,
-  RotateCcw
+  RotateCcw,
+  Film
 } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Cinematic Intro Animation Sequence Stages:
-  // stage 0: Initial black screen with subtle glow
-  // stage 1: Massive single word "EDUPRIME" with light sweep
-  // stage 2: Full title "EDUPRIME SCHOOL ERP" unfolds + 3 Path Cards seamlessly reveal
-  const [introStage, setIntroStage] = useState<number>(0);
+  // Key to force re-trigger of movie animation sequence on demand
+  const [animationKey, setAnimationKey] = useState<number>(0);
+  const [showSecondWord, setShowSecondWord] = useState<boolean>(false);
+  const [showPortals, setShowPortals] = useState<boolean>(false);
 
   useEffect(() => {
-    // Cinematic Timeline Trigger
-    const t1 = setTimeout(() => setIntroStage(1), 300);   // Word 1: "EDUPRIME"
-    const t2 = setTimeout(() => setIntroStage(2), 2200);  // Unfolds to full name + cards
+    setShowSecondWord(false);
+    setShowPortals(false);
+
+    // Sequence timing:
+    // 0ms: First Word "EDUPRIME" zooms in with glowing light sweep
+    // 1200ms: "SCHOOL ERP" flies in and snaps into place
+    // 2000ms: Portal cards and 3D globe smoothly slide in
+    const t1 = setTimeout(() => setShowSecondWord(true), 1200);
+    const t2 = setTimeout(() => setShowPortals(true), 2000);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, []);
+  }, [animationKey]);
 
   const handleReplay = () => {
-    setIntroStage(0);
-    setTimeout(() => setIntroStage(1), 200);
-    setTimeout(() => setIntroStage(2), 2200);
+    setAnimationKey(prev => prev + 1);
   };
 
   // 3D Canvas Particle Sphere
@@ -46,8 +49,8 @@ export const LandingPage: React.FC = () => {
     if (!ctx) return;
 
     let animationFrameId: number;
-    let width = (canvas.width = canvas.parentElement?.clientWidth || 380);
-    let height = (canvas.height = canvas.parentElement?.clientHeight || 380);
+    let width = (canvas.width = canvas.parentElement?.clientWidth || 360);
+    let height = (canvas.height = canvas.parentElement?.clientHeight || 360);
 
     const handleResize = () => {
       if (!canvas.parentElement) return;
@@ -56,7 +59,7 @@ export const LandingPage: React.FC = () => {
     };
     window.addEventListener('resize', handleResize);
 
-    const numParticles = 650;
+    const numParticles = 600;
     const radius = Math.min(width, height) * 0.36;
     const particles: { theta: number; phi: number; speed: number; size: number; hue: number }[] = [];
 
@@ -65,8 +68,8 @@ export const LandingPage: React.FC = () => {
         theta: Math.random() * Math.PI * 2,
         phi: Math.acos(Math.random() * 2 - 1),
         speed: 0.003 + Math.random() * 0.003,
-        size: 1 + Math.random() * 2,
-        hue: 175 + Math.random() * 50 // Cyan to electric blue
+        size: 1.2 + Math.random() * 1.8,
+        hue: 170 + Math.random() * 50
       });
     }
 
@@ -81,13 +84,13 @@ export const LandingPage: React.FC = () => {
       const centerX = width / 2;
       const centerY = height / 2;
 
-      // Central glowing core
-      const coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 24);
-      coreGrad.addColorStop(0, 'rgba(34, 211, 238, 0.7)');
-      coreGrad.addColorStop(0.5, 'rgba(6, 182, 212, 0.2)');
+      // Center glowing core
+      const coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 22);
+      coreGrad.addColorStop(0, 'rgba(34, 211, 238, 0.8)');
+      coreGrad.addColorStop(0.5, 'rgba(6, 182, 212, 0.25)');
       coreGrad.addColorStop(1, 'rgba(6, 182, 212, 0)');
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 24, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY, 22, 0, Math.PI * 2);
       ctx.fillStyle = coreGrad;
       ctx.fill();
 
@@ -105,7 +108,7 @@ export const LandingPage: React.FC = () => {
         const fZ = y * Math.sin(rotX) + rZ * Math.cos(rotX);
 
         const scale = (fZ + radius * 1.8) / (radius * 2.8);
-        const alpha = Math.max(0.15, Math.min(1, (fZ + radius) / (radius * 2)));
+        const alpha = Math.max(0.18, Math.min(1, (fZ + radius) / (radius * 2)));
 
         const projX = centerX + rX * (scale * 0.95);
         const projY = centerY + rY * (scale * 0.95);
@@ -130,13 +133,15 @@ export const LandingPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-screen w-screen bg-[#050811] text-white flex flex-col justify-between relative overflow-hidden select-none font-sans">
-      
-      {/* Cinematic Ambient Glow Background */}
+    <div
+      key={animationKey}
+      className="min-h-screen lg:h-screen w-screen bg-[#050811] text-white flex flex-col justify-between relative overflow-hidden select-none font-sans"
+    >
+      {/* Ambient Glow Orbs */}
       <div className="absolute -top-32 -left-32 w-[550px] h-[550px] bg-cyan-500/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-32 -right-32 w-[550px] h-[550px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* Top Bar with Replay Button */}
+      {/* Top Header */}
       <header className="px-6 py-4 flex items-center justify-between z-20">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-cyan-500/20">
@@ -150,144 +155,137 @@ export const LandingPage: React.FC = () => {
         <button
           type="button"
           onClick={handleReplay}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 text-xs font-semibold border border-white/10 transition-all cursor-pointer backdrop-blur-md"
-          title="Replay Movie Title Sequence"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/15 text-slate-300 hover:text-cyan-300 text-xs font-bold border border-white/10 transition-all cursor-pointer backdrop-blur-md"
+          title="Replay Movie Title Intro"
         >
-          <RotateCcw className="w-3 h-3" />
-          <span>Replay Title</span>
+          <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Replay Movie Intro</span>
         </button>
       </header>
 
       {/* Main Single-Screen Cinematic Stage */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 max-w-6xl w-full mx-auto z-10">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 max-w-6xl w-full mx-auto z-10 py-2">
         
-        {/* 🎬 CINEMATIC MOVIE TITLE INTRO CONTAINER */}
-        <div className="text-center w-full mb-6 sm:mb-8 transition-all duration-700">
-          
-          {/* STAGE 1: Massive Single Word "EDUPRIME" Reveal */}
-          {introStage === 1 && (
-            <div className="animate-fade-in flex flex-col items-center justify-center py-8">
-              <span className="text-xs uppercase tracking-[0.4em] font-bold text-cyan-400 mb-2 animate-pulse">
-                • PRESENTING •
-              </span>
-              <h1 className="text-6xl sm:text-8xl lg:text-9xl font-black tracking-widest uppercase bg-gradient-to-r from-white via-cyan-200 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_50px_rgba(34,211,238,0.6)] transform scale-105 transition-transform duration-1000">
-                EDUPRIME
-              </h1>
-            </div>
-          )}
+        {/* 🎬 1. MOVIE TITLE INTRO (Word by Word Reveal) */}
+        <div className="text-center w-full mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest mb-2 animate-fade-in">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Official Institutional Release</span>
+          </div>
 
-          {/* STAGE 2: Unfolded Full Title & Subtitle */}
-          {introStage >= 2 && (
-            <div className="animate-fade-in space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest mb-1">
-                <Sparkles className="w-3 h-3 text-cyan-400" />
-                <span>Next-Gen Enterprise School Management</span>
-              </div>
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight uppercase text-white leading-tight">
-                EDUPRIME{' '}
-                <span className="bg-gradient-to-r from-lime-300 via-emerald-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(34,211,238,0.4)]">
-                  SCHOOL ERP
-                </span>
+          {/* Cinematic Title Row */}
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 leading-none">
+            {/* Word 1: EDUPRIME (Zooms in with glowing movie light flare) */}
+            <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black uppercase tracking-wider animate-movie-zoom animate-light-sweep drop-shadow-[0_0_40px_rgba(34,211,238,0.7)]">
+              EDUPRIME
+            </h1>
+
+            {/* Word 2 & 3: SCHOOL ERP (Glides in seamlessly next to it) */}
+            {showSecondWord && (
+              <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black uppercase tracking-wider bg-gradient-to-r from-lime-300 via-emerald-300 to-cyan-300 bg-clip-text text-transparent animate-fly-in drop-shadow-[0_0_40px_rgba(74,222,128,0.6)]">
+                SCHOOL ERP
               </h1>
-              <p className="text-sm sm:text-base font-medium text-slate-400 max-w-xl mx-auto">
-                Choose your institutional portal below to access your workspace
-              </p>
-            </div>
-          )}
+            )}
+          </div>
+
+          <p className="text-xs sm:text-sm font-medium text-slate-400 max-w-lg mx-auto mt-3 animate-fade-in">
+            Next-Generation Enterprise Management & Academic Intelligence
+          </p>
         </div>
 
-        {/* 🚀 2-COLUMN VIEWPORT: 3D SPHERE (LEFT) & 3 PATH CARDS (RIGHT) */}
-        {introStage >= 2 && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center w-full animate-fade-in">
-            
-            {/* Left Column: Glass Glow Card with 3D Canvas Hologram Sphere */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-xs sm:max-w-sm aspect-square rounded-3xl bg-gradient-to-br from-blue-950/40 via-slate-950/60 to-cyan-950/30 border border-cyan-500/30 shadow-[0_0_60px_-15px_rgba(6,182,212,0.3)] backdrop-blur-2xl relative flex items-center justify-center p-4 overflow-hidden">
-                <canvas ref={canvasRef} className="w-full h-full object-contain pointer-events-none z-0" />
-                <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[11px] font-bold text-slate-400 px-3 py-1.5 rounded-xl bg-black/40 border border-white/5 backdrop-blur-md">
-                  <span className="flex items-center gap-1.5 text-emerald-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live Telemetry
-                  </span>
-                  <span className="font-mono text-cyan-300">2026-27</span>
-                </div>
+        {/* 🚀 2. 2-COLUMN VIEWPORT (3D GLOBE + 3 ROLE CARDS) */}
+        <div
+          className={`grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center w-full transition-opacity duration-700 ${
+            showPortals ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          {/* Left Column: 3D Hologram Particle Sphere */}
+          <div className="lg:col-span-5 flex justify-center animate-float-infinite">
+            <div className="w-full max-w-xs sm:max-w-sm aspect-square rounded-3xl bg-gradient-to-br from-blue-950/40 via-slate-950/60 to-cyan-950/30 border border-cyan-500/30 shadow-[0_0_60px_-15px_rgba(6,182,212,0.3)] backdrop-blur-2xl relative flex items-center justify-center p-4 overflow-hidden">
+              <canvas ref={canvasRef} className="w-full h-full object-contain pointer-events-none z-0" />
+              <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[11px] font-bold text-slate-400 px-3 py-1.5 rounded-xl bg-black/40 border border-white/5 backdrop-blur-md">
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live Telemetry
+                </span>
+                <span className="font-mono text-cyan-300">2026-27</span>
               </div>
-            </div>
-
-            {/* Right Column: 3 Dedicated Role Selection Cards */}
-            <div className="lg:col-span-7 flex flex-col justify-center space-y-3 sm:space-y-3.5">
-              
-              {/* 1. Faculty Login */}
-              <div
-                onClick={() => navigate('/login/teacher')}
-                className="group p-4 sm:p-4.5 rounded-2xl bg-[#0e1628]/85 hover:bg-[#16223d] border border-slate-800 hover:border-cyan-400 shadow-lg hover:shadow-cyan-500/15 transition-all duration-200 cursor-pointer flex items-center justify-between transform hover:-translate-y-0.5"
-              >
-                <div className="flex items-center gap-3.5 sm:gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-cyan-500/15 group-hover:bg-cyan-500/25 text-cyan-400 border border-cyan-500/30 flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm">
-                    <GraduationCap className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-extrabold text-white group-hover:text-cyan-300 transition-colors">
-                      Faculty / Teacher Portal
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Class roll call, attendance & academic scores
-                    </p>
-                  </div>
-                </div>
-                <div className="w-8 h-8 rounded-xl bg-white/5 group-hover:bg-cyan-500 group-hover:text-slate-950 flex items-center justify-center text-slate-400 group-hover:translate-x-1 transition-all">
-                  <ChevronRight className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* 2. Head Master Login */}
-              <div
-                onClick={() => navigate('/login/headmaster')}
-                className="group p-4 sm:p-4.5 rounded-2xl bg-[#0e1628]/85 hover:bg-[#16223d] border border-slate-800 hover:border-emerald-400 shadow-lg hover:shadow-emerald-500/15 transition-all duration-200 cursor-pointer flex items-center justify-between transform hover:-translate-y-0.5"
-              >
-                <div className="flex items-center gap-3.5 sm:gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500/15 group-hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm">
-                    <UserCheck className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-extrabold text-white group-hover:text-emerald-300 transition-colors">
-                      Head Master Executive Portal
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      School cohorts, admissions & faculty leave review
-                    </p>
-                  </div>
-                </div>
-                <div className="w-8 h-8 rounded-xl bg-white/5 group-hover:bg-emerald-500 group-hover:text-slate-950 flex items-center justify-center text-slate-400 group-hover:translate-x-1 transition-all">
-                  <ChevronRight className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* 3. Master Admin Login */}
-              <div
-                onClick={() => navigate('/login/admin')}
-                className="group p-4 sm:p-4.5 rounded-2xl bg-[#0e1628]/85 hover:bg-[#16223d] border border-slate-800 hover:border-lime-400 shadow-lg hover:shadow-lime-400/15 transition-all duration-200 cursor-pointer flex items-center justify-between transform hover:-translate-y-0.5"
-              >
-                <div className="flex items-center gap-3.5 sm:gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-lime-400/15 group-hover:bg-lime-400/25 text-lime-400 border border-lime-400/30 flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm">
-                    <ShieldCheck className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-extrabold text-white group-hover:text-lime-300 transition-colors">
-                      Master Admin Control
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      6-digit PIN authenticated system governance & ID cards
-                    </p>
-                  </div>
-                </div>
-                <div className="w-8 h-8 rounded-xl bg-white/5 group-hover:bg-lime-400 group-hover:text-slate-950 flex items-center justify-center text-slate-400 group-hover:translate-x-1 transition-all">
-                  <ChevronRight className="w-5 h-5" />
-                </div>
-              </div>
-
             </div>
           </div>
-        )}
+
+          {/* Right Column: Exactly 3 Dedicated Role Selection Cards */}
+          <div className="lg:col-span-7 flex flex-col justify-center space-y-3 sm:space-y-3.5">
+            
+            {/* 1. Faculty Login */}
+            <div
+              onClick={() => navigate('/login/teacher')}
+              className="animate-card-1 group p-4 sm:p-4.5 rounded-2xl bg-[#0e1628]/85 hover:bg-[#16223d] border border-slate-800 hover:border-cyan-400 shadow-lg hover:shadow-cyan-500/15 transition-all duration-200 cursor-pointer flex items-center justify-between transform hover:-translate-y-0.5"
+            >
+              <div className="flex items-center gap-3.5 sm:gap-4">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/15 group-hover:bg-cyan-500/25 text-cyan-400 border border-cyan-500/30 flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-white group-hover:text-cyan-300 transition-colors">
+                    Faculty / Teacher Portal
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Class roll call, attendance & academic scores
+                  </p>
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-white/5 group-hover:bg-cyan-500 group-hover:text-slate-950 flex items-center justify-center text-slate-400 group-hover:translate-x-1 transition-all">
+                <ChevronRight className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* 2. Head Master Login */}
+            <div
+              onClick={() => navigate('/login/headmaster')}
+              className="animate-card-2 group p-4 sm:p-4.5 rounded-2xl bg-[#0e1628]/85 hover:bg-[#16223d] border border-slate-800 hover:border-emerald-400 shadow-lg hover:shadow-emerald-500/15 transition-all duration-200 cursor-pointer flex items-center justify-between transform hover:-translate-y-0.5"
+            >
+              <div className="flex items-center gap-3.5 sm:gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/15 group-hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm">
+                  <UserCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-white group-hover:text-emerald-300 transition-colors">
+                    Head Master Executive Portal
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    School cohorts, admissions & faculty leave review
+                  </p>
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-white/5 group-hover:bg-emerald-500 group-hover:text-slate-950 flex items-center justify-center text-slate-400 group-hover:translate-x-1 transition-all">
+                <ChevronRight className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* 3. Master Admin Login */}
+            <div
+              onClick={() => navigate('/login/admin')}
+              className="animate-card-3 group p-4 sm:p-4.5 rounded-2xl bg-[#0e1628]/85 hover:bg-[#16223d] border border-slate-800 hover:border-lime-400 shadow-lg hover:shadow-lime-400/15 transition-all duration-200 cursor-pointer flex items-center justify-between transform hover:-translate-y-0.5"
+            >
+              <div className="flex items-center gap-3.5 sm:gap-4">
+                <div className="w-12 h-12 rounded-xl bg-lime-400/15 group-hover:bg-lime-400/25 text-lime-400 border border-lime-400/30 flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-white group-hover:text-lime-300 transition-colors">
+                    Master Admin Control
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    6-digit PIN authenticated system governance & ID cards
+                  </p>
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-white/5 group-hover:bg-lime-400 group-hover:text-slate-950 flex items-center justify-center text-slate-400 group-hover:translate-x-1 transition-all">
+                <ChevronRight className="w-5 h-5" />
+              </div>
+            </div>
+
+          </div>
+        </div>
 
       </main>
 

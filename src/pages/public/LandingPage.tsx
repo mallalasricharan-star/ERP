@@ -9,6 +9,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { FuturisticVisualizer } from '../../components/common/FuturisticVisualizer';
+import { CinematicWordReveal } from '../../components/common/CinematicWordReveal';
 import { themeService, AnimationThemeConfig } from '../../services/themeService';
 
 export const LandingPage: React.FC = () => {
@@ -34,7 +35,7 @@ export const LandingPage: React.FC = () => {
       />
       <div className="absolute -bottom-32 -right-32 w-[600px] h-[600px] bg-blue-600/15 rounded-full blur-[160px] pointer-events-none" />
 
-      {/* 1. TOP MINIMAL HEADER (Clean Logo, No Replay Button) */}
+      {/* 1. TOP MINIMAL HEADER */}
       <header className="pt-6 pb-2 flex items-center justify-center z-20">
         <div className="inline-flex items-center gap-3 px-5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-lg">
           <div
@@ -59,31 +60,24 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Continuous EDUPRIME ERP Title + 3 Dedicated Path Cards */}
+          {/* Right Column: Word-to-Full-Name Reveal + 3 Dedicated Path Cards */}
           <div className="lg:col-span-7 flex flex-col justify-center space-y-6">
             
-            {/* Continuous EDUPRIME ERP Design Header */}
+            {/* 🎬 Word-to-Full-Name Morphing Title: "EDUPRIME" -> "EDUPRIME ERP" */}
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Enterprise School Ecosystem</span>
               </div>
 
-              {/* Continuous EDUPRIME ERP Gradient Title */}
-              <div>
-                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-none">
-                  EDUPRIME{' '}
-                  <span className="bg-gradient-to-r from-lime-300 via-emerald-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(34,211,238,0.5)]">
-                    ERP
-                  </span>
-                </h1>
-                
-                {/* Glowing Laser Underline */}
-                <div
-                  className="h-1 rounded-full mt-3 w-48 shadow-lg transition-colors duration-1000"
-                  style={{
-                    background: `linear-gradient(90deg, ${activeTheme.primaryColor}, ${activeTheme.secondaryColor}, transparent)`
-                  }}
+              {/* Dynamic Word-to-Full-Name Reveal */}
+              <div className="pt-1">
+                <CinematicWordReveal
+                  firstWord="EDUPRIME"
+                  secondWord="ERP"
+                  primaryColor={activeTheme.primaryColor}
+                  secondaryColor={activeTheme.secondaryColor}
+                  glowColor={activeTheme.glowColor}
                 />
               </div>
 

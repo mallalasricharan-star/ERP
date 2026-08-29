@@ -60,25 +60,19 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Word-to-Full-Name Reveal + 3 Dedicated Path Cards */}
+          {/* Right Column: Cinematic Word Reveal Hero + 3 Dedicated Path Cards */}
           <div className="lg:col-span-7 flex flex-col justify-center space-y-6">
             
-            {/* 🎬 Word-to-Full-Name Morphing Title: "EDUPRIME" -> "EDUPRIME ERP" */}
-            <div className="space-y-2">
+            {/* 🎬 Cinematic Word-to-Full-Name Reveal Animation */}
+            <div className="space-y-1.5">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Enterprise School Ecosystem</span>
+                <span>Next-Gen Enterprise Platform</span>
               </div>
 
-              {/* Dynamic Word-to-Full-Name Reveal */}
+              {/* Dynamic Word-to-Full-Name Morph Sequence */}
               <div className="pt-1">
-                <CinematicWordReveal
-                  firstWord="EDUPRIME"
-                  secondWord="ERP"
-                  primaryColor={activeTheme.primaryColor}
-                  secondaryColor={activeTheme.secondaryColor}
-                  glowColor={activeTheme.glowColor}
-                />
+                <CinematicWordReveal />
               </div>
 
               <p className="text-base sm:text-lg text-slate-300 font-medium leading-relaxed pt-1">

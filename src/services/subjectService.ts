@@ -123,5 +123,33 @@ export const subjectService = {
     });
 
     return true;
+  },
+
+  async deleteAllSubjects(classId?: string): Promise<number> {
+    const session = authService.getCurrentSession();
+    if (!session || session.user.role !== 'admin') {
+      throw new Error('Permission Denied: Only Admin can delete subjects.');
+    }
+
+    let query = supabase.from('subjects').delete();
+    if (classId) {
+      query = query.eq('class_id', classId);
+    } else {
+      query = query.neq('id', '00000000-0000-0000-0000-000000000000');
+    }
+
+    const { error } = await query;
+    if (error) throw error;
+
+    await supabase.from('audit_logs').insert({
+      user_id: session.user.id,
+      user_email: session.user.email,
+      user_role: 'admin',
+      action: 'DELETE_ALL_SUBJECTS',
+      table_name: 'subjects',
+      description: classId ? `Admin deleted all subjects for class ${classId}` : 'Admin deleted all institutional subjects'
+    });
+
+    return 1;
   }
 };

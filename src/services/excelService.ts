@@ -160,6 +160,36 @@ export const excelService = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Students Registry');
 
     XLSX.writeFile(workbook, `Student_Registry_${new Date().toISOString().split('T')[0]}.xlsx`);
+  },
+
+  async exportAttendanceDaily(dateStr: string): Promise<void> {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase is not configured.');
+    }
+
+    const { data: records, error } = await supabase
+      .from('attendance')
+      .select('*, classes(class_number, section), students(student_name, admission_number, roll_number)')
+      .eq('attendance_date', dateStr)
+      .order('class_id');
+
+    if (error) throw error;
+
+    const rows = (records || []).map((r: any) => ({
+      'Date': r.attendance_date,
+      'Class': `Class ${r.classes?.class_number || ''}`,
+      'Section': r.classes?.section || 'A',
+      'Roll No': r.students?.roll_number,
+      'Admission No': r.students?.admission_number,
+      'Student Name': r.students?.student_name,
+      'Status': r.status?.toUpperCase()
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Daily Attendance');
+
+    XLSX.writeFile(workbook, `Attendance_Daily_${dateStr}.xlsx`);
   }
 };
 

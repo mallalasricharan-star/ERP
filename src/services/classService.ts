@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { toISODate } from '../lib/utils';
 import { ClassRoom, DashboardStats } from '../types';
+import { authService } from './authService';
 
 export const classService = {
   async getClasses(): Promise<ClassRoom[]> {
@@ -14,7 +15,7 @@ export const classService = {
       supabase.from('classes').select('*').order('class_number', { ascending: true }),
       supabase.from('students').select('id, class_id'),
       supabase.from('attendance').select('class_id, status').eq('attendance_date', todayStr),
-      supabase.from('teachers').select('full_name, assigned_class, assigned_class_id').eq('is_active', true)
+      supabase.from('teachers').select('id, full_name, assigned_class, assigned_class_id').eq('is_active', true)
     ]);
 
     if (classesRes.error) throw classesRes.error;
@@ -46,8 +47,83 @@ export const classService = {
         present_today: presentCount,
         absent_today: absentCount,
         attendance_percentage: attendancePercentage,
-        assigned_teacher_name: teacher?.full_name || 'Not Assigned'
+        assigned_teacher_name: teacher?.full_name || 'Not Assigned',
+        assigned_teacher_id: teacher?.id || null
       };
+    });
+  },
+
+  async addClass(data: { class_number: number; section: string; academic_year?: string; teacher_id?: string }): Promise<ClassRoom> {
+    const session = authService.getCurrentSession();
+    if (!session || session.user.role !== 'admin') {
+      throw new Error('Unauthorized: Only Admin can create classes.');
+    }
+
+    if (!data.class_number || data.class_number <= 0) {
+      throw new Error('Valid Class Number is required (e.g. 1, 2, 7, etc.).');
+    }
+    if (!data.section?.trim()) {
+      throw new Error('Section is required (e.g. A, B).');
+    }
+
+    const { data: newClass, error } = await supabase
+      .from('classes')
+      .insert({
+        class_number: Number(data.class_number),
+        section: data.section.trim().toUpperCase(),
+        academic_year: data.academic_year || '2026-2027'
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error(`Class ${data.class_number}-${data.section.toUpperCase()} already exists.`);
+      }
+      throw error;
+    }
+
+    // If teacher selected, assign teacher
+    if (data.teacher_id) {
+      await supabase
+        .from('teachers')
+        .update({
+          assigned_class: `Class ${newClass.class_number}`,
+          assigned_class_id: newClass.id
+        })
+        .eq('id', data.teacher_id);
+    }
+
+    await supabase.from('audit_logs').insert({
+      user_id: session.user.id,
+      user_email: session.user.email,
+      user_role: 'admin',
+      action: 'ADD_CLASS',
+      table_name: 'classes',
+      record_id: newClass.id,
+      description: `Admin created Class ${newClass.class_number}-${newClass.section}`
+    });
+
+    return newClass;
+  },
+
+  async deleteClass(classId: string): Promise<void> {
+    const session = authService.getCurrentSession();
+    if (!session || session.user.role !== 'admin') {
+      throw new Error('Unauthorized: Only Admin can delete classes.');
+    }
+
+    const { error } = await supabase.from('classes').delete().eq('id', classId);
+    if (error) throw error;
+
+    await supabase.from('audit_logs').insert({
+      user_id: session.user.id,
+      user_email: session.user.email,
+      user_role: 'admin',
+      action: 'DELETE_CLASS',
+      table_name: 'classes',
+      record_id: classId,
+      description: `Admin deleted class ${classId}`
     });
   },
 

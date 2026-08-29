@@ -4,43 +4,65 @@ import {
   School,
   Users,
   UserCheck,
-  UserX,
-  TrendingUp,
   Download,
   CalendarCheck,
   Award,
   ArrowRight,
-  User
+  User,
+  PlusCircle,
+  Trash2
 } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { classService } from '../../services/classService';
+import { teacherService } from '../../services/teacherService';
 import { studentService } from '../../services/studentService';
 import { excelService } from '../../services/excelService';
-import { ClassRoom, Student } from '../../types';
+import { ClassRoom, Student, Teacher } from '../../types';
 
 export const ClassesPage: React.FC = () => {
   const [classes, setClasses] = useState<ClassRoom[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<ClassRoom | null>(null);
   const [classStudents, setClassStudents] = useState<Student[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
-  const { role } = useAuth();
-  const navigate = useNavigate();
+  // Add Class Modal state
+  const [isAddClassOpen, setIsAddClassOpen] = useState(false);
+  const [isDeleteClassOpen, setIsDeleteClassOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<ClassRoom | null>(null);
+  const [addClassForm, setAddClassForm] = useState({
+    class_number: 1,
+    section: 'A',
+    academic_year: '2026-2027',
+    teacher_id: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loadClasses = async () => {
+  const { role } = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const isAdmin = role === 'admin';
+
+  const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = await classService.getClasses();
-      setClasses(data);
+      const [clsData, tchrData] = await Promise.all([
+        classService.getClasses(),
+        teacherService.getTeachers()
+      ]);
+      setClasses(clsData);
+      setTeachers(tchrData);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadClasses();
+    loadData();
   }, []);
 
   const handleOpenClassDetails = async (cls: ClassRoom) => {
@@ -54,25 +76,76 @@ export const ClassesPage: React.FC = () => {
     }
   };
 
+  const handleCreateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await classService.addClass(addClassForm);
+      toast.success(`Class ${addClassForm.class_number}-${addClassForm.section.toUpperCase()} created successfully.`);
+      setIsAddClassOpen(false);
+      setAddClassForm({
+        class_number: 1,
+        section: 'A',
+        academic_year: '2026-2027',
+        teacher_id: ''
+      });
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create class');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteClassConfirm = async () => {
+    if (!classToDelete) return;
+    setIsSubmitting(true);
+    try {
+      await classService.deleteClass(classToDelete.id);
+      toast.success(`Class ${classToDelete.class_number}-${classToDelete.section} deleted.`);
+      setIsDeleteClassOpen(false);
+      setClassToDelete(null);
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete class');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Academic Classes Management</h1>
-          <p className="text-sm text-slate-500 mt-1">Class 1 to Class 6 grade cohorts, faculty allocations, and live attendance metrics</p>
+          <p className="text-sm text-slate-500 mt-1">Class grade cohorts, faculty allocations, and live attendance metrics</p>
         </div>
 
-        <button
-          onClick={() => excelService.exportMarksReport()}
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm transition-colors"
-        >
-          <Download className="w-4 h-4 text-emerald-600" />
-          <span>Export All Classes Excel</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsAddClassOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20 transition-colors cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Add New Class</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => excelService.exportMarksReport()}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm transition-colors cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-emerald-600" />
+            <span>Export Classes Excel</span>
+          </button>
+        </div>
       </div>
 
-      {/* Class 1 to 6 Cards Grid as per requirement #15 */}
+      {/* Class Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (
@@ -98,15 +171,32 @@ export const ClassesPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <span
-                    className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
-                      (cls.attendance_percentage || 0) >= 75
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}
-                  >
-                    {cls.attendance_percentage || 0}% Att.
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                        (cls.attendance_percentage || 0) >= 75
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}
+                    >
+                      {cls.attendance_percentage || 0}% Att.
+                    </span>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setClassToDelete(cls);
+                          setIsDeleteClassOpen(true);
+                        }}
+                        className="p-1.5 text-slate-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                        title="Delete Class"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Class Teacher */}
@@ -137,104 +227,145 @@ export const ClassesPage: React.FC = () => {
 
               {/* Action Footer */}
               <div className="mt-4 pt-3 flex items-center justify-between text-xs font-semibold text-blue-600 group-hover:text-blue-700">
-                <span>Open Class Dashboard</span>
-                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                <span>View Students & Scores</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           ))
         )}
       </div>
 
-      {/* Class Deep-Dive Modal */}
+      {/* Add New Class Modal (Admin Only) */}
+      <Modal
+        isOpen={isAddClassOpen}
+        onClose={() => setIsAddClassOpen(false)}
+        title="Add New Academic Class"
+      >
+        <form onSubmit={handleCreateClass} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Class Grade Number *
+            </label>
+            <input
+              type="number"
+              required
+              min="1"
+              max="12"
+              placeholder="e.g. 1, 2, 7, 10"
+              value={addClassForm.class_number}
+              onChange={e => setAddClassForm({ ...addClassForm, class_number: Number(e.target.value) })}
+              className="w-full py-2.5 px-3.5 text-sm rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Section *
+            </label>
+            <input
+              type="text"
+              required
+              maxLength={2}
+              placeholder="e.g. A, B, C"
+              value={addClassForm.section}
+              onChange={e => setAddClassForm({ ...addClassForm, section: e.target.value.toUpperCase() })}
+              className="w-full py-2.5 px-3.5 text-sm rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none font-bold"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Academic Year
+            </label>
+            <input
+              type="text"
+              value={addClassForm.academic_year}
+              onChange={e => setAddClassForm({ ...addClassForm, academic_year: e.target.value })}
+              className="w-full py-2.5 px-3.5 text-sm rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Assign Class Teacher (Optional)
+            </label>
+            <select
+              value={addClassForm.teacher_id}
+              onChange={e => setAddClassForm({ ...addClassForm, teacher_id: e.target.value })}
+              className="w-full py-2.5 px-3.5 text-sm rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none bg-white font-medium"
+            >
+              <option value="">-- No Teacher Assigned --</option>
+              {teachers.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.full_name} ({t.employee_id})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsAddClassOpen(false)}
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors disabled:opacity-50"
+            >
+              {isSubmitting ? 'Creating...' : 'Create Class'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Class Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={isDeleteClassOpen}
+        onClose={() => setIsDeleteClassOpen(false)}
+        onConfirm={handleDeleteClassConfirm}
+        title="Delete Academic Class"
+        message={`Are you sure you want to delete Class ${classToDelete?.class_number}-${classToDelete?.section}? This will also remove the class cohort allocation.`}
+        confirmText="Delete Class"
+        isDanger={true}
+        isLoading={isSubmitting}
+      />
+
+      {/* View Class Students Modal */}
       <Modal
         isOpen={Boolean(selectedClass)}
         onClose={() => setSelectedClass(null)}
-        title={selectedClass ? `Class ${selectedClass.class_number} Overview & Student Roster` : ''}
-        subtitle={selectedClass ? `Section ${selectedClass.section} • Teacher: ${selectedClass.assigned_teacher_name}` : ''}
-        maxWidth="4xl"
+        title={selectedClass ? `Class ${selectedClass.class_number} (${selectedClass.section}) Cohort Roster` : ''}
       >
-        {selectedClass && (
-          <div className="space-y-6">
-            {/* Quick Action Buttons */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="flex items-center gap-4 text-xs">
-                <div>
-                  <span className="text-slate-400 font-semibold block">Total Enrolled</span>
-                  <span className="text-sm font-bold text-slate-900">{selectedClass.student_count} Students</span>
-                </div>
-                <div className="h-6 w-px bg-slate-200"></div>
-                <div>
-                  <span className="text-slate-400 font-semibold block">Today's Attendance</span>
-                  <span className="text-sm font-bold text-emerald-600">{selectedClass.present_today} Present / {selectedClass.absent_today} Absent</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    excelService.exportClassAttendance(selectedClass.class_number);
-                  }}
-                  className="px-3 py-2 text-xs font-semibold rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-sm transition-colors flex items-center gap-1.5"
-                >
-                  <Download className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Download Attendance Excel</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSelectedClass(null);
-                    navigate(role === 'teacher' ? '/teacher/attendance' : role === 'head_master' ? '/headmaster/attendance' : '/admin/attendance');
-                  }}
-                  className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-colors flex items-center gap-1.5"
-                >
-                  <CalendarCheck className="w-3.5 h-3.5" />
-                  <span>Take Attendance</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Enrolled Students Table */}
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Enrolled Students Roster</h4>
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-bold uppercase">
-                      <th className="py-2.5 px-3">Roll No</th>
-                      <th className="py-2.5 px-3">Admission No</th>
-                      <th className="py-2.5 px-3">Student Name</th>
-                      <th className="py-2.5 px-3">Gender</th>
-                      <th className="py-2.5 px-3">Parent Name</th>
-                      <th className="py-2.5 px-3">Parent Contact</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {isLoadingStudents ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-400">Loading student roster...</td>
-                      </tr>
-                    ) : classStudents.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-400">No students currently enrolled in this class.</td>
-                      </tr>
-                    ) : (
-                      classStudents.map(st => (
-                        <tr key={st.id} className="hover:bg-slate-50">
-                          <td className="py-2.5 px-3 font-bold text-slate-900">#{st.roll_number}</td>
-                          <td className="py-2.5 px-3 font-mono text-blue-600 font-semibold">{st.admission_number}</td>
-                          <td className="py-2.5 px-3 font-semibold text-slate-800">{st.student_name}</td>
-                          <td className="py-2.5 px-3">{st.gender}</td>
-                          <td className="py-2.5 px-3">{st.father_name || st.mother_name || '—'}</td>
-                          <td className="py-2.5 px-3 font-mono text-slate-500">{st.parent_phone || '—'}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-xs font-medium text-slate-600">
+            <span>Class Teacher: <strong className="text-slate-900">{selectedClass?.assigned_teacher_name}</strong></span>
+            <span>Total Enrolled: <strong className="text-blue-600">{classStudents.length} Students</strong></span>
           </div>
-        )}
+
+          <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+            {isLoadingStudents ? (
+              <div className="py-8 text-center text-slate-400">Loading student roster...</div>
+            ) : classStudents.length === 0 ? (
+              <div className="py-8 text-center text-slate-400">No students enrolled in this class.</div>
+            ) : (
+              classStudents.map(st => (
+                <div key={st.id} className="py-2.5 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-slate-900 block">{st.student_name}</span>
+                    <span className="text-slate-400 font-mono text-[10px]">Adm: {st.admission_number}</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-slate-100 font-mono text-slate-700 font-bold">
+                    Roll #{st.roll_number}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </Modal>
     </div>
   );
